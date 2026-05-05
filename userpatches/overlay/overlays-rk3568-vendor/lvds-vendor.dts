@@ -1,0 +1,109 @@
+/dts-v1/;
+/plugin/;
+/ {
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			backlight: backlight {
+				compatible = "gpio-backlight";
+				gpios = <&gpio0 19 0>;
+				default-on;
+			};
+			vcc3v3_lcd0_n: vcc3v3-lcd0-n {
+				compatible = "regulator-fixed";
+				regulator-name = "vcc3v3_lcd0_n";
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				enable-active-high;
+				gpio = <&gpio0 23 0>;
+				regulator-boot-on;
+			};
+			panel-lvds0 {
+				compatible = "simple-panel";
+				backlight = <&backlight>;
+				power-supply = <&vcc3v3_lcd0_n>;
+				enable-delay-ms = <20>;
+				prepare-delay-ms = <20>;
+				unprepare-delay-ms = <20>;
+				disable-delay-ms = <20>;
+				bus-format = <0x1011>;
+				width-mm = <261>;
+				height-mm = <163>;
+				display-timings {
+					native-mode = <&timing0>;
+					timing0: timing0 {
+						clock-frequency = <71000000>;
+						hactive = <1280>;
+						hfront-porch = <48>;
+						hsync-len = <32>;
+						hback-porch = <80>;
+						vactive = <800>;
+						vfront-porch = <3>;
+						vsync-len = <6>;
+						vback-porch = <14>;
+						hsync-active = <0>;
+						vsync-active = <0>;
+						de-active = <0>;
+						pixelclk-active = <0>;
+					};
+				};
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					port@0 {
+						reg = <0>;
+						panel_in_lvds: endpoint {
+							remote-endpoint = <&lvds_out_panel>;
+						};
+					};
+				};
+			};
+		};
+	};
+	fragment@1 {
+		target-path = "/phy@fe850000";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+	fragment@2 {
+		target-path = "/syscon@fdc60000/lvds";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+	fragment@3 {
+		target-path = "/syscon@fdc60000/lvds/ports/port@0/endpoint@1";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+	fragment@4 {
+		target-path = "/syscon@fdc60000/lvds";
+		__overlay__ {
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				port@1 {
+					reg = <1>;
+					lvds_out_panel: endpoint {
+						remote-endpoint = <&panel_in_lvds>;
+					};
+				};
+			};
+		};
+	};
+	fragment@5 {
+		target-path = "/vop@fe040000/ports/port@1/endpoint@4";
+		__overlay__ {
+			status = "okay";
+		};
+	};
+	fragment@6 {
+		target-path = "/display-subsystem/route/route-lvds";
+		__overlay__ {
+			status = "okay";
+			connect = <&vp1_out_lvds>;
+		};
+	};
+};

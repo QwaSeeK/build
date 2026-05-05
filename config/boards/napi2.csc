@@ -1,0 +1,13 @@
+# Rockchip RK3568 quad core 1-8GB SoC 2x1GBe eMMC USB3
+BOARD_NAME="NAPI2 rk3568"
+BOARD_VENDOR="Napilab"
+BOARDFAMILY="rk35xx"
+BOARD_MAINTAINER="dmnovikov"
+BOOTCONFIG="napi2-rk3568_defconfig"
+KERNEL_TARGET="current,edge,vendor"
+KERNEL_TEST_TARGET="current"
+FULL_DESKTOP="no"
+BOOT_LOGO="no"
+BOOT_FDT_FILE="rockchip/rk3568-napi2.dtb"
+BOOT_SCENARIO="spl-blobs"
+IMAGE_PARTITION_TABLE="gpt"

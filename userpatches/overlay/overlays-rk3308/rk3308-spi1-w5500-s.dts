@@ -1,0 +1,42 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "rockchip,rk3308";
+
+	fragment@0 {
+		target = <&spi1>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			w5500@0 {
+				compatible = "wiznet,w5500";
+				reg = <0>;
+
+				pinctrl-names = "default";
+				pinctrl-0 = <&w5500_int &w5500_rst>;
+
+				interrupt-parent = <&gpio2>;
+				interrupts = <11 2>; /* 2 = IRQ_TYPE_EDGE_FALLING */
+
+				spi-max-frequency = <30000000>;
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&pinctrl>;
+		__overlay__ {
+			w5500 {
+				w5500_int: w5500-int {
+					rockchip,pins = <2 11 0 &pcfg_pull_up>; /* GPIO2_B3 */
+				};
+				w5500_rst: w5500-rst {
+					rockchip,pins = <2 12 0 &pcfg_pull_up>; /* GPIO2_B4 */
+				};
+			};
+		};
+	};
+};

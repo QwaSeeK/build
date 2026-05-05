@@ -1,0 +1,18 @@
+diff --git a/arch/arm/dts/rk3308-napi-c-u-boot.dtsi b/arch/arm/dts/rk3308-napi-c-u-boot.dtsi
+new file mode 100644
+index 00000000000..111111111112
+--- /dev/null
++++ b/arch/arm/dts/rk3308-napi-c-u-boot.dtsi
+@@ -0,0 +1,9 @@
++// SPDX-License-Identifier: GPL-2.0+
++#include "rk3308-u-boot.dtsi"
++&uart0 {
++	bootph-all;
++	clock-frequency = <24000000>;
++};
++&uart0_xfer {
++	bootph-all;
++};
++&vdd_core {
++	regulator-init-microvolt = <1015000>;
++};

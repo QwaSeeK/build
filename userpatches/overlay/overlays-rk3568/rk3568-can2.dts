@@ -1,0 +1,6 @@
+/dts-v1/;
+/plugin/;
+
+&can2 {
+  status = "okay";
+};

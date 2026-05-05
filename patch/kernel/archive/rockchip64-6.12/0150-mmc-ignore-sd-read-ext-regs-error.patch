@@ -1,0 +1,15 @@
+diff --git a/drivers/mmc/core/sd.c b/drivers/mmc/core/sd.c
+index b2919fef6a79..3a98cf167188 100644
+--- a/drivers/mmc/core/sd.c
++++ b/drivers/mmc/core/sd.c
+@@ -1538,8 +1538,8 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
+ 	if (!oldcard) {
+ 		/* Read/parse the extension registers. */
+ 		err = sd_read_ext_regs(card);
+-		if (err)
+-			goto free_card;
++		//if (err)
++		//	goto free_card;
+ 	}
+ 
+ 	/* Enable internal SD cache if supported. */

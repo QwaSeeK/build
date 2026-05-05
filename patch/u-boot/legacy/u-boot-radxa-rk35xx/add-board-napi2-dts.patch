@@ -1,0 +1,66 @@
+diff --git a/arch/arm/dts/rk3568-napi2.dts b/arch/arm/dts/rk3568-napi2.dts
+new file mode 100644
+index 00000000000..66bb0727702
+--- /dev/null
++++ b/arch/arm/dts/rk3568-napi2.dts
+@@ -0,0 +1,60 @@
++/*
++ * SPDX-License-Identifier:     GPL-2.0+
++ * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
++ * Copyright (c) 2024 Radxa Limited
++ */
++
++/dts-v1/;
++#include "rk3568-radxa-cm3i.dtsi"
++
++/ {
++	model = "Napilab NAPI2 Carrier Board";
++	compatible = "napilab,napi2", "radxa,cm3i", "rockchip,rk3568";
++
++	chosen {
++		stdout-path = "serial2:115200n8";
++	};
++
++	led_sys: led-sys {
++		u-boot,dm-pre-reloc;
++		compatible = "regulator-fixed";
++		regulator-name = "led_sys";
++		enable-active-high;
++		gpio = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
++		regulator-boot-on;
++		regulator-always-on;
++		vin-supply = <&vcc3v3_sys>;
++	};
++
++	adc-keys {
++		compatible = "adc-keys";
++		io-channels = <&saradc 0>;
++		io-channel-names = "buttons";
++		keyup-threshold-microvolt = <1800000>;
++		u-boot,dm-spl;
++		status = "okay";
++
++		volumeup-key {
++			u-boot,dm-spl;
++			linux,code = <KEY_VOLUMEUP>;
++			label = "volume up";
++			press-threshold-microvolt = <9>;
++		};
++	};
++
++	leds {
++		u-boot,dm-pre-reloc;
++		compatible = "gpio-leds";
++		status = "okay";
++
++		blue-led {
++			u-boot,dm-pre-reloc;
++			label = "blue";
++			gpios = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
++		};
++	};
++};
++
++&gpio4 {
++	u-boot,dm-pre-reloc;
++};

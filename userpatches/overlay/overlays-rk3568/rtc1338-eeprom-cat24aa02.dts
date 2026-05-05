@@ -1,0 +1,36 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "rockchip,rk3568";
+
+	/* Enable I2C5 and select M0 pinmux */
+	fragment@0 {
+		target = <&i2c5>;
+		__overlay__ {
+			status = "okay";
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c5m0_xfer>;
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			rtc@68 {
+				compatible = "dallas,ds1338";
+				reg = <0x68>;
+				status = "okay";
+			};
+			/* EEPROM CAT24AA02 (2Kbit = 256 bytes) @0x50 */
+			eeprom@50 {
+				compatible = "atmel,24c02";
+				reg = <0x50>;
+
+				size = <256>;
+				pagesize = <16>;
+
+				status = "okay";
+			};
+		};
+	};
+};
