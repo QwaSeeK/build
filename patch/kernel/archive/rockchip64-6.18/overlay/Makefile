@@ -1,5 +1,24 @@
 # SPDX-License-Identifier: GPL-2.0
 dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
+	rk3308-i2c0-ds1307.dtbo \
+	rk3308-i2c0.dtbo \
+	rk3308-i2c1-ds1307.dtbo \
+	rk3308-i2c1-ds1338.dtbo \
+	rk3308-i2c1-ds3231.dtbo \
+	rk3308-i2c1.dtbo \
+	rk3308-i2c3-m0.dtbo \
+	rk3308-i2c3-m1.dtbo \
+	rk3308-i2c3.dtbo \
+	rk3308-spi1-w5500.dtbo \
+	rk3308-spi2-spidev.dtbo \
+	rk3308-uart0.dtbo \
+	rk3308-uart2-m0.dtbo \
+	rk3308-uart2-m1.dtbo \
+	rk3308-uart3-m0.dtbo \
+	rk3308-uart3-m1.dtbo \
+	rk3308-uart4.dtbo \
+	rk3308-usb-pcie-modem.dtbo \
+	rk3568-napi2-lvds.dtbo \
 	hinlink-h88k-240x135-lcd.dtbo \
 	rk35xx-radxa-zero-3w-ext-ant.dtbo \
 	rk3308-uart1.dtbo rk3308-uart2.dtbo rk3308-uart3.dtbo \

@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikita Maslo <nikitamalco203@gmail.com>
+Date: Mon, 5 May 2025 16:22:00 +0300
+Subject: arm64: dts: rockchip: overlay: build rk3568-napi2-lvds.dtbo
+
+The NAPI2 (RK3568) LVDS panel overlay source is delivered into
+arch/arm64/boot/dts/rockchip/overlay/ by the "overlay-directories" entry in
+patch/kernel/rk35xx-vendor-6.1/0000.patching_config.yaml, which only copies
+files - it deliberately ships no Makefile of its own, because doing so would
+overwrite this kernel's ~300-entry overlay Makefile.
+
+So the build entry has to be patched in. It is added as a fresh "+=" block
+rather than by extending the last continued line, to keep the hunk small and
+avoid a backslash conflict whenever upstream appends new overlays. It must
+stay above "always-y := $(dtbo-y)", which expands immediately.
+
+Note this is unconditional for every rk35xx vendor board (kernel patch dirs
+have no board_${BOARD} scoping - BOARD is not passed to the patcher, see
+lib/functions/compilation/kernel-patching.sh:31). The cost is one extra
+~3 KB .dtbo in the linux-dtb package of unrelated rk35xx boards.
+
+Signed-off-by: Nikita Maslo <nikitamalco203@gmail.com>
+---
+ arch/arm64/boot/dts/rockchip/overlay/Makefile | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/overlay/Makefile b/arch/arm64/boot/dts/rockchip/overlay/Makefile
+index 111111111111..222222222222 100644
+--- a/arch/arm64/boot/dts/rockchip/overlay/Makefile
++++ b/arch/arm64/boot/dts/rockchip/overlay/Makefile
+@@ -349,6 +349,13 @@
+ 	recomputer-rk3588-devkit-halow-wifi.dtbo \
+ 	recomputer-rk3588-devkit-raspi-7inch-touchscreen.dtbo
+ 
++# Armbian: NAPI2 (RK3568) board overlay. The .dts source is dropped into this directory by
++# patch/kernel/rk35xx-vendor-6.1/overlay/ via 'overlay-directories' in 0000.patching_config.yaml;
++# only this Makefile entry has to be patched in. Keep it above 'always-y :=' below, which
++# expands $(dtbo-y) immediately.
++dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
++	rk3568-napi2-lvds.dtbo
++
+ dtbotxt-$(CONFIG_ARCH_ROCKCHIP) += \
+ 	README.rockchip-overlays
+ 
+-- 
+Armbian
+

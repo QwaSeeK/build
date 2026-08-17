@@ -1,0 +1,21 @@
+# NAPI: real (non-snap) Firefox .debs for arm64.
+#
+# Replaces the `add-apt-repository -y ppa:mozillateam/ppa` call that the old
+# userpatches/customize-image.sh ran inside the chroot. That needed
+# software-properties-common installed in the target and fetched this signing
+# key over the network, unverified, at build time. Both are avoided by shipping
+# the de-armoured key alongside this file.
+#
+# Key: /usr/share/keyrings/napi-mozillateam.gpg
+#      0AB2 1567 9C57 1D1C 8325  275B 9BDB 3D89 CE49 EC21
+#      "Launchpad PPA for Mozilla Team"
+#
+# `Suites:` is rewritten to ${RELEASE} by the board hook that installs this
+# file; noble is the default because it is the only release the NAPI images
+# have ever been built for. The PPA publishes arm64 for jammy and later only.
+
+Types: deb
+URIs: https://ppa.launchpadcontent.net/mozillateam/ppa/ubuntu
+Suites: noble
+Components: main
+Signed-By: /usr/share/keyrings/napi-mozillateam.gpg

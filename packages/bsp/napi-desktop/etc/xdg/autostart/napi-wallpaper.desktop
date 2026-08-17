@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=NAPI Wallpaper Init
+Exec=/usr/local/bin/napi-set-wallpaper.sh
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true

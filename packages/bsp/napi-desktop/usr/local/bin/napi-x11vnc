@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# NAPI: start a VNC server mirroring the local X display.
+#
+# Replaces the /root/x11srv.sh note the old customize-image.sh dropped into the
+# image. That file was never executable and nothing ever ran it; this is the
+# same command line, promoted to a real command on $PATH.
+#
+# WARNING: -nopw disables authentication and -listen 0.0.0.0 binds every
+# interface, so anyone who can reach this board gets full control of the
+# desktop. It is deliberately NOT autostarted -- run it by hand, and only on a
+# trusted network. Use `x11vnc -storepasswd` and swap -nopw for
+# `-rfbauth ~/.vnc/passwd` if you need it running unattended.
+
+exec x11vnc -auth guess -display :0 -nopw -listen 0.0.0.0 -forever "$@"

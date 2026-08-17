@@ -12,6 +12,26 @@ config:
   dts-directories:
     - { source: "dt", target: "arch/arm64/boot/dts/rockchip" }
 
+  # every file in these directories will be copied as-is to the build tree; later ones overwrite earlier ones
+  # This is meant as a way to have overlays, bare, in a directory, without having to null-patch them in.
+  #
+  # WARNING: unlike the mainline rockchip64-* patchdirs, this (vendor) kernel *already ships*
+  #          arch/arm64/boot/dts/rockchip/overlay/{Makefile,README.rockchip-overlays} with ~300 entries.
+  #          copy_bare_files() (lib/tools/common/dt_makefile_patcher.py:241-248) copies *every* regular
+  #          file and overwrites same-named targets, so putting a Makefile or a README in the "overlay"
+  #          source dir below would DESTROY the kernel's own ones. Ship only .dts files here and add the
+  #          matching "dtbo-$(CONFIG_ARCH_ROCKCHIP) +=" line with an ordinary .patch instead
+  #          (see 003-overlay-add-rk3568-napi2-lvds.patch).
+  #
+  # NOTE: auto-patch-dt-makefile below runs with "incremental: true", and in that mode
+  #       auto_patch_dt_makefile() (dt_makefile_patcher.py:172-179) does NOT emit the
+  #       "subdir-y := $(dts-dirs) overlay" line. This works only because the vendor kernel's
+  #       arch/arm64/boot/dts/rockchip/Makefile already ends with that line, and it sits after the
+  #       last "dtb-$(...)" line so it survives in postamble_lines (dt_makefile_patcher.py:124).
+  #       If that line ever disappears upstream, overlays stop being built *and* installed silently.
+  overlay-directories:
+    - { source: "overlay", target: "arch/arm64/boot/dts/rockchip/overlay" }
+
   # the Makefile in each of these directories will be magically patched to include the dts files copied
   #  or patched-in; overlay subdir will be included "-y" if it exists.
   # No more Makefile patching needed, yay!

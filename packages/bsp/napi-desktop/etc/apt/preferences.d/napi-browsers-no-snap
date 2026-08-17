@@ -1,0 +1,20 @@
+# NAPI: keep firefox/chromium off snap.
+#
+# Ubuntu >= 22.04 ships `firefox` and `chromium-browser` as transitional .debs
+# whose only job is to install the corresponding snap. Snapd is not shipped in
+# Armbian images, so those transitional packages are useless here. Pinning them
+# to a negative priority makes apt refuse them outright, which lets the real
+# .deb from ppa:mozillateam/ppa (Origin: LP-PPA-mozillateam) become the
+# candidate instead -- see /etc/apt/sources.list.d/napi-mozillateam.sources.
+#
+# The `o=Ubuntu*` glob is matched with fnmatch(); apt applies pattern matching
+# to every `Pin: release` field, not just to `Package:`.
+# The mozillateam PPA has Origin "LP-PPA-mozillateam", so it is unaffected.
+
+Package: firefox*
+Pin: release o=Ubuntu*
+Pin-Priority: -1
+
+Package: chromium*
+Pin: release o=Ubuntu*
+Pin-Priority: -1
