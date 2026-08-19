@@ -13,7 +13,10 @@ BOOTCONFIG="napi2-rk3568_defconfig"
 BOOT_FDT_FILE="rockchip/rk3568-smarc.dtb"
 
 # No vendor kernel here: rk3568-smarc.dts exists for mainline only (6.12 / 6.16).
-KERNEL_TARGET="current,edge"
+# edge (7.1) не заявлен: DTS платы и оверлеи rk3308 лежат только
+# в patch/kernel/archive/rockchip64-6.18 (current). Добавить в 7.1 —
+# скопировать туда dt/ и overlay/ и вернуть edge сюда.
+KERNEL_TARGET="current"
 KERNEL_TEST_TARGET="current"
 
 BOOT_SCENARIO="spl-blobs"

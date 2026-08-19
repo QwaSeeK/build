@@ -12,7 +12,10 @@ BOARD_MAINTAINER=""
 BOOTCONFIG="napi-switch-rk3308_defconfig"
 BOOT_FDT_FILE="rockchip/rk3308-napi-switch.dtb"
 
-KERNEL_TARGET="current,edge"
+# edge (7.1) не заявлен: DTS платы и оверлеи rk3308 лежат только
+# в patch/kernel/archive/rockchip64-6.18 (current). Добавить в 7.1 —
+# скопировать туда dt/ и overlay/ и вернуть edge сюда.
+KERNEL_TARGET="current"
 KERNEL_TEST_TARGET="current"
 
 DEFAULT_CONSOLE="serial"

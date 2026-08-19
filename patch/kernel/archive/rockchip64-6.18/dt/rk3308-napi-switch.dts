@@ -233,8 +233,15 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&ksz_int &ksz_rst>;
 
-		/* RST_PHY_N = GPIO2_A3 (шарик I2C2_SCL), активен низким */
-		reset-gpios = <&gpio2 RK_PA3 GPIO_ACTIVE_LOW>;
+		/*
+		 * Намеренно без reset-gpios. RESET_N идёт через супервизор U4 (RS806):
+		 * после отпускания MR он держит сброс ещё ~140-280 мс, а драйвер
+		 * ждёт после deassert только 100 мс (ksz_switch_register) — probe
+		 * читал chip id у чипа ещё в сбросе: "unsupported switch
+		 * detected ffffff00". Сброс по включению делает сам супервизор.
+		 * Линия MR (RST_PHY_N, GPIO2_A3) остаётся замукшена как GPIO
+		 * через &ksz_rst, чтобы её никто не перехватил.
+		 */
 
 		ethernet-ports {
 			#address-cells = <1>;

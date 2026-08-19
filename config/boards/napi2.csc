@@ -8,7 +8,9 @@ BOARD_MAINTAINER=""
 BOOTCONFIG="napi2-rk3568_defconfig"
 BOOT_FDT_FILE="rockchip/rk3568-napi2.dtb"
 
-KERNEL_TARGET="current,edge,vendor"
+# edge (7.1) не заявлен: DTS есть в rockchip64-6.18 (current) и
+# rk35xx-vendor-6.1 (vendor), в 7.1 его нет.
+KERNEL_TARGET="current,vendor"
 KERNEL_TEST_TARGET="current,vendor"
 
 BOOT_SCENARIO="spl-blobs"
