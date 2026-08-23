@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: QwaSeeK <nikitamalco203@gmail.com>
+Date: Sun, 23 Aug 2026 00:00:00 +0300
+Subject: net: dsa: microchip: enable SGMII port 7 on KSZ9567
+
+KSZ9567 has a SerDes on port 7, but ksz_switch_chips[] does not say so.
+Verified against the KSZ9567S data sheet (DS00002393C):
+
+  - Section 4.13.3: "Port 7 is permanently configured as an SGMII port".
+    The parallel pins do not exist on this package, so the current
+    supports_mii/rmii/rgmii entries for port 7 cannot be correct.
+
+  - Section 4.13.4: the interface has a SerDes mode "for interfacing to
+    1000BASE-X fiber optic modules", using 1000BASE-X auto-negotiation.
+
+  - Section 5.2.3: the indirect SGMII registers live at 0x7200-0x7203
+    (address, 32-bit) and 0x7206-0x7207 (data, 16-bit), which matches
+    REG_PORT_SGMII_ADDR__4 / REG_PORT_SGMII_DATA__4 and the accessors
+    in ksz9477.c exactly.  The errata (DS80000756F) module 7 work
+    around, a write to SGMII register 0x1F0004, is already implemented
+    in ksz9477_pcs_write().
+
+Without .sgmii_port the whole SerDes path stays disabled: pcs_create()
+is skipped, ksz9477_get_caps() never ORs the PCS interfaces into
+supported_interfaces, and phylink_validate() then rejects a port
+described as 1000base-x.  .phylink_mac_ops is missing as well - KSZ9567
+is the only entry in the table without it - and mac_select_pcs() lives
+there, so the PCS could not be selected even with .sgmii_port set.
+
+Bring the entry in line with KSZ9477.  No functional change for ports
+1..6, which keep their existing capabilities.
+
+Signed-off-by: QwaSeeK <nikitamalco203@gmail.com>
+---
+ drivers/net/dsa/microchip/ksz_common.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/dsa/microchip/ksz_common.c b/drivers/net/dsa/microchip/ksz_common.c
+index 111111111111..222222222222 100644
+--- a/drivers/net/dsa/microchip/ksz_common.c
++++ b/drivers/net/dsa/microchip/ksz_common.c
+@@ -1922,6 +1922,7 @@
+ 		.num_ipms = 8,
+ 		.tc_cbs_supported = true,
+ 		.ops = &ksz9477_dev_ops,
++		.phylink_mac_ops = &ksz9477_phylink_mac_ops,
+ 		.mib_names = ksz9477_mib_names,
+ 		.mib_cnt = ARRAY_SIZE(ksz9477_mib_names),
+ 		.reg_mib_cnt = MIB_COUNTER_NUM,
+@@ -1931,15 +1932,16 @@
+ 		.xmii_ctrl0 = ksz9477_xmii_ctrl0,
+ 		.xmii_ctrl1 = ksz9477_xmii_ctrl1,
+ 		.supports_mii	= {false, false, false, false,
+-				   false, true, true},
++				   false, true, false},
+ 		.supports_rmii	= {false, false, false, false,
+-				   false, true, true},
++				   false, true, false},
+ 		.supports_rgmii = {false, false, false, false,
+-				   false, true, true},
++				   false, true, false},
+ 		.internal_phy	= {true, true, true, true,
+ 				   true, false, false},
+ 		.gbit_capable	= {true, true, true, true, true, true, true},
+ 		.ptp_capable = true,
++		.sgmii_port = 7,
+ 	},
+ 
+ 	[LAN9370] = {
