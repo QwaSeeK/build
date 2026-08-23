@@ -2,6 +2,7 @@
 /*
  * Copyright (c) 2019 Akash Gajjar <akash@openedev.com>
  * Copyright (c) 2019 Jagan Teki <jagan@openedev.com>
+ * Copyright (c) 2026 NAPI Lab
  */
 
 /dts-v1/;
@@ -11,13 +12,12 @@
 
 / {
 	model = "NAPI-Switch";
-	compatible = "radxa,rockpis", "rockchip,rk3308";
+	compatible = "napilab,napi-switch", "rockchip,rk3308";
 
 	aliases {
 		ethernet0 = &gmac;
 		mmc0 = &emmc;
 		mmc1 = &sdmmc;
-		mmc2 = &sdio;
 	};
 
 	chosen {
@@ -34,7 +34,6 @@
 			default-state = "on";
 			function = LED_FUNCTION_POWER;
 			gpios = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
-			label = "rockpis:green:power";
 			linux,default-trigger = "default-on";
 		};
 
@@ -43,7 +42,6 @@
 			default-state = "on";
 			function = LED_FUNCTION_HEARTBEAT;
 			gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_HIGH>;
-			label = "rockpis:blue:user";
 			linux,default-trigger = "heartbeat";
 		};
 	};
@@ -58,16 +56,6 @@
 		vin-supply = <&vcc_io>;
 	};
 
-	vcc_io: vcc-io {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc_io";
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		vin-supply = <&vcc5v0_sys>;
-	};
-
 	vcc_ddr: vcc-ddr {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc_ddr";
@@ -75,6 +63,16 @@
 		regulator-boot-on;
 		regulator-min-microvolt = <1500000>;
 		regulator-max-microvolt = <1500000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	vcc_io: vcc-io {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_io";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc5v0_sys>;
 	};
 
@@ -141,18 +139,9 @@
 };
 
 &gmac {
-	/*
-	 * Внешнего PHY нет: MAC подключён к порту 6 коммутатора KSZ9567S
-	 * по RMII. Опорные 50 МГц выдаёт коммутатор (REFCLK6), поэтому
-	 * clock_in_out = "input" и pinctrl без варианта _12ma.
-	 */
-	assigned-clocks = <&cru SCLK_MAC>;
-	assigned-clock-parents = <&mac_clkin>;
-	clock_in_out = "input";
+	clock_in_out = "output";
 	phy-mode = "rmii";
 	phy-supply = <&vcc_io>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&rmii_pins &mac_refclk>;
 	status = "okay";
 
 	fixed-link {
@@ -163,6 +152,19 @@
 
 &i2c1 {
 	status = "okay";
+
+	eeprom@50 {
+		compatible = "atmel,24c64";
+		reg = <0x50>;
+		address-width = <16>;
+		pagesize = <32>;
+		size = <8192>;
+	};
+
+	rtc@68 {
+		compatible = "dallas,ds1338";
+		reg = <0x68>;
+	};
 };
 
 &pinctrl {
@@ -170,16 +172,10 @@
 	pinctrl-0 = <&rtc_32k>;
 
 	ksz9567 {
-		/* INTRP_N, вывод 94 — внешняя подтяжка R44 10k на DVDIO */
 		ksz_int: ksz-int {
 			rockchip,pins = <4 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		/*
-		 * RST_PHY_N -> R12 10k -> вход MR супервизора U4 (RS806),
-		 * его выход RST -> SW_RESET_N -> RESET_N коммутатора (вывод 96).
-		 * У MR своя подтяжка на плате, поэтому pull_none.
-		 */
 		ksz_rst: ksz-rst {
 			rockchip,pins = <2 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
@@ -203,8 +199,8 @@
 };
 
 &pwm0 {
-	status = "okay";
 	pinctrl-0 = <&pwm0_pin_pull_down>;
+	status = "okay";
 };
 
 &saradc {
@@ -226,22 +222,11 @@
 	switch@0 {
 		compatible = "microchip,ksz9567";
 		reg = <0>;
-		spi-max-frequency = <44000000>;
-
 		interrupt-parent = <&gpio4>;
 		interrupts = <RK_PB1 IRQ_TYPE_LEVEL_LOW>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&ksz_int &ksz_rst>;
-
-		/*
-		 * Намеренно без reset-gpios. RESET_N идёт через супервизор U4 (RS806):
-		 * после отпускания MR он держит сброс ещё ~140-280 мс, а драйвер
-		 * ждёт после deassert только 100 мс (ksz_switch_register) — probe
-		 * читал chip id у чипа ещё в сбросе: "unsupported switch
-		 * detected ffffff00". Сброс по включению делает сам супервизор.
-		 * Линия MR (RST_PHY_N, GPIO2_A3) остаётся замукшена как GPIO
-		 * через &ksz_rst, чтобы её никто не перехватил.
-		 */
+		spi-max-frequency = <10000000>;
 
 		ethernet-ports {
 			#address-cells = <1>;
@@ -250,29 +235,33 @@
 			port@0 {
 				reg = <0>;
 				label = "lan1";
+				phy-mode = "internal";
 			};
 
 			port@1 {
 				reg = <1>;
 				label = "lan2";
+				phy-mode = "internal";
 			};
 
 			port@2 {
 				reg = <2>;
 				label = "lan3";
+				phy-mode = "internal";
 			};
 
 			port@3 {
 				reg = <3>;
 				label = "lan4";
+				phy-mode = "internal";
 			};
 
 			port@4 {
 				reg = <4>;
 				label = "lan5";
+				phy-mode = "internal";
 			};
 
-			/* Порт 6 коммутатора: RMII в GMAC процессора */
 			port@5 {
 				reg = <5>;
 				ethernet = <&gmac>;
@@ -282,6 +271,13 @@
 					speed = <100>;
 					full-duplex;
 				};
+			};
+
+			port@6 {
+				reg = <6>;
+				label = "sfp";
+				managed = "in-band-status";
+				phy-mode = "1000base-x";
 			};
 		};
 	};
@@ -307,12 +303,9 @@
 	status = "okay";
 };
 
-/*
- * uart4 выключен намеренно: его выводы GPIO4_B1/GPIO4_B0 заняты
- * сигналами коммутатора INTRP_N и GPIO_FILT.
- */
-&uart4 {
-	status = "disabled";
+&usb20_otg {
+	dr_mode = "host";
+	status = "okay";
 };
 
 &usb_host_ehci {
@@ -320,12 +313,6 @@
 };
 
 &usb_host_ohci {
-	status = "okay";
-};
-
-/* LAN7850 припаян на OTG-порт, поэтому только host */
-&usb20_otg {
-	dr_mode = "host";
 	status = "okay";
 };
 
