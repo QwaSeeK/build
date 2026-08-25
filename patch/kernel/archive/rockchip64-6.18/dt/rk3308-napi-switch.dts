@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright (c) 2019 Akash Gajjar <akash@openedev.com>
- * Copyright (c) 2019 Jagan Teki <jagan@openedev.com>
  * Copyright (c) 2026 NAPI Lab
  */
 
 /dts-v1/;
 
 #include <dt-bindings/leds/common.h>
+#include <dt-bindings/net/microchip-lan78xx.h>
 #include "rk3308.dtsi"
 
 / {
@@ -273,11 +272,11 @@
 				};
 			};
 
-			port@6 {
+			sfp_port: port@6 {
 				reg = <6>;
 				label = "sfp";
 				managed = "in-band-status";
-				phy-mode = "1000base-x";
+				phy-mode = "sgmii";
 			};
 		};
 	};
@@ -304,8 +303,27 @@
 };
 
 &usb20_otg {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	dr_mode = "host";
 	status = "okay";
+
+	ethernet@1 {
+		compatible = "usb424,7850";
+		reg = <1>;
+
+		mdio {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			lan7850_phy: ethernet-phy@1 {
+				reg = <1>;
+				microchip,led-modes = <LAN78XX_LINK_ACTIVITY
+						       LAN78XX_FORCE_LED_OFF
+						       LAN78XX_ACTIVITY>;
+			};
+		};
+	};
 };
 
 &usb_host_ehci {
