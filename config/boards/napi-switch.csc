@@ -75,20 +75,24 @@ function post_post_debootstrap_tweaks__napi_switch_netplan_release_lan_ports() {
 	return 0
 }
 
-function post_family_tweaks__napi_firstrun_preset_switch() {
-	display_alert "${BOARD}" "presetting armbian-firstlogin (root + user 'napi')" "info"
-	cat <<- 'NAPI_PRESET' > "${SDCARD}"/root/.not_logged_in_yet
-		PRESET_USER_SHELL=bash
-		PRESET_CONNECT_WIRELESS=n
-		SET_LANG_BASED_ON_LOCATION=n
-		PRESET_LOCALE=en_US.UTF-8
-		PRESET_TIMEZONE=Europe/Moscow
-		PRESET_ROOT_PASSWORD=napilinux
-		PRESET_USER_NAME=napi
-		PRESET_USER_PASSWORD=napilinux
-		PRESET_DEFAULT_REALNAME=NAPI
-	NAPI_PRESET
-	chmod 600 "${SDCARD}"/root/.not_logged_in_yet
+function post_family_tweaks__napi_switch_provision_accounts() {
+	declare user_name="napi"
+	declare user_pass="napilinux"
+	declare group
+
+	display_alert "${BOARD}" "creating user '${user_name}' at build time" "info"
+	chroot_sdcard "useradd --create-home --shell /bin/bash --comment 'NAPI' '${user_name}'"
+	chroot_sdcard "echo '${user_name}:${user_pass}' | chpasswd"
+
+	# The same set armbian-firstlogin would have applied; groups that do not exist on a
+	# headless rootfs are skipped there too.
+	for group in sudo netdev audio video disk tty users games dialout plugdev input \
+		bluetooth systemd-journal ssh render docker; do
+		chroot_sdcard "usermod -aG '${group}' '${user_name}' 2>/dev/null || true"
+	done
+
+	display_alert "${BOARD}" "disabling the first-login wizard, booting to a login prompt" "info"
+	run_host_command_logged rm -fv "${SDCARD}/root/.not_logged_in_yet"
 	return 0
 }
 
@@ -111,6 +115,34 @@ function post_repo_customize_image__napi_napilab_packages_switch() {
 	[[ ! -f "${SDCARD}/usr/share/keyrings/napilab.gpg" ]] && return 0
 	display_alert "${BOARD}" "installing napilab packages: mbusd gpiod" "info"
 	chroot_sdcard_apt_get_install mbusd gpiod
+	return 0
+}
+
+function post_repo_customize_image__napi_switch_mstpd() {
+	declare mstpd_version="0.2.0-2"
+	declare mstpd_sha256="d985d09b47c03812bbe465cb12e749442a6fa09bd044362c7fbefa59939b6baa"
+	declare mstpd_deb="mstpd_${mstpd_version}_arm64.deb"
+	declare mstpd_cache="${SRC}/cache/mstpd"
+	declare mstpd_url="https://deb.debian.org/debian/pool/main/m/mstpd/${mstpd_deb}"
+
+	if [[ "${ARCH}" != "arm64" ]]; then
+		display_alert "${BOARD}" "mstpd is pinned for arm64, skipped on ${ARCH}" "wrn"
+		return 0
+	fi
+
+	run_host_command_logged mkdir -pv "${mstpd_cache}"
+	if ! echo "${mstpd_sha256}  ${mstpd_cache}/${mstpd_deb}" | sha256sum --check --status; then
+		display_alert "${BOARD}" "downloading ${mstpd_deb}" "info"
+		run_host_command_logged curl -fSL --retry 3 --connect-timeout 20 \
+			-o "${mstpd_cache}/${mstpd_deb}" "${mstpd_url}"
+		echo "${mstpd_sha256}  ${mstpd_cache}/${mstpd_deb}" | sha256sum --check --status ||
+			exit_with_error "mstpd ${mstpd_version} checksum mismatch, superseded in the Debian pool?"
+	fi
+
+	display_alert "${BOARD}" "installing mstpd ${mstpd_version} (RSTP daemon)" "info"
+	run_host_command_logged cp -v "${mstpd_cache}/${mstpd_deb}" "${SDCARD}/tmp/${mstpd_deb}"
+	chroot_sdcard_apt_get_install "/tmp/${mstpd_deb}"
+	run_host_command_logged rm -f "${SDCARD}/tmp/${mstpd_deb}"
 	return 0
 }
 
