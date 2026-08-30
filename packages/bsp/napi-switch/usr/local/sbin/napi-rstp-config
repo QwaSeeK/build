@@ -1,0 +1,88 @@
+#!/bin/sh
+set -u
+
+BRIDGE='br0'
+EDGE_PORTS='lan1 lan2 lan3 lan4 lan5'
+UPLINK_PORTS='sfp'
+BPDU_GUARD='no'
+
+MSTPCTL='/usr/sbin/mstpctl'
+SYSFS='/sys/class/net'
+
+log() { logger -t napi-rstp -s "$*"; }
+
+wait_for() {
+	_tries="$1"
+	shift
+	while [ "$_tries" -gt 0 ]; do
+		if "$@"; then
+			return 0
+		fi
+		_tries=$((_tries - 1))
+		sleep 0.1 2>/dev/null || sleep 1
+	done
+	return 1
+}
+
+user_stp_active() {
+	[ -r "${SYSFS}/${BRIDGE}/bridge/stp_state" ] || return 1
+	read -r _state < "${SYSFS}/${BRIDGE}/bridge/stp_state"
+	[ "${_state}" = '2' ]
+}
+
+port_enslaved() {
+	[ -e "${SYSFS}/${BRIDGE}/brif/$1" ]
+}
+
+if [ ! -x "${MSTPCTL}" ]; then
+	log "mstpctl missing - the bridge stays on the kernel's 802.1D"
+	exit 0
+fi
+
+bridge_exists() {
+	[ -d "${SYSFS}/${BRIDGE}/bridge" ]
+}
+
+if ! wait_for 300 bridge_exists; then
+	log "${BRIDGE} did not appear, nothing to configure"
+	exit 0
+fi
+
+if ! wait_for 300 user_stp_active; then
+	read -r state < "${SYSFS}/${BRIDGE}/bridge/stp_state" 2>/dev/null || state='?'
+	log "${BRIDGE} stp_state=${state}, expected 2 (user STP) - is /sbin/bridge-stp present and is stp enabled on the bridge?"
+	exit 1
+fi
+
+# Harmless if bridge-stp already did it, and closes the documented race.
+"${MSTPCTL}" addbridge "${BRIDGE}" 2>/dev/null || true
+
+"${MSTPCTL}" setforcevers "${BRIDGE}" rstp || log "failed to force RSTP on ${BRIDGE}"
+
+for port in ${EDGE_PORTS}; do
+	if ! wait_for 100 port_enslaved "${port}"; then
+		log "${port} is not a member of ${BRIDGE}, skipped"
+		continue
+	fi
+	"${MSTPCTL}" setportadminedge "${BRIDGE}" "${port}" yes || log "adminedge failed on ${port}"
+	"${MSTPCTL}" setportautoedge "${BRIDGE}" "${port}" yes || log "autoedge failed on ${port}"
+	"${MSTPCTL}" setportrestrrole "${BRIDGE}" "${port}" yes || log "restricted role failed on ${port}"
+	if [ "${BPDU_GUARD}" = 'yes' ]; then
+		"${MSTPCTL}" setbpduguard "${BRIDGE}" "${port}" yes || log "bpduguard failed on ${port}"
+	fi
+done
+
+for port in ${UPLINK_PORTS}; do
+	if ! port_enslaved "${port}"; then
+		log "${port} is not a member of ${BRIDGE}, skipped"
+		continue
+	fi
+
+	"${MSTPCTL}" setportadminedge "${BRIDGE}" "${port}" no || log "adminedge failed on ${port}"
+	"${MSTPCTL}" setportautoedge "${BRIDGE}" "${port}" yes || log "autoedge failed on ${port}"
+	# An uplink must stay eligible for the root port role, unlike the edge ports.
+	"${MSTPCTL}" setportrestrrole "${BRIDGE}" "${port}" no || log "restricted role failed on ${port}"
+	"${MSTPCTL}" setbpduguard "${BRIDGE}" "${port}" no || log "bpduguard failed on ${port}"
+done
+
+log "RSTP configured on ${BRIDGE}: edge ${EDGE_PORTS}, uplink ${UPLINK_PORTS}"

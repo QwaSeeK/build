@@ -29,6 +29,7 @@ OVERLAY_PREFIX="rk3308"
 VENDOR="Armbian-napilab"
 KEEP_ORIGINAL_OS_RELEASE="yes"
 ROOTPWD="napilinux"
+CONSOLE_AUTOLOGIN="no"
 
 PACKAGE_LIST_BOARD="vim net-tools can-utils mbpoll minicom tcpdump screen memtester xxd tree \
 	util-linux-extra mosquitto mosquitto-clients i2c-tools python3-pymodbus python3-pip \
@@ -84,8 +85,6 @@ function post_family_tweaks__napi_switch_provision_accounts() {
 	chroot_sdcard "useradd --create-home --shell /bin/bash --comment 'NAPI' '${user_name}'"
 	chroot_sdcard "echo '${user_name}:${user_pass}' | chpasswd"
 
-	# The same set armbian-firstlogin would have applied; groups that do not exist on a
-	# headless rootfs are skipped there too.
 	for group in sudo netdev audio video disk tty users games dialout plugdev input \
 		bluetooth systemd-journal ssh render docker; do
 		chroot_sdcard "usermod -aG '${group}' '${user_name}' 2>/dev/null || true"
