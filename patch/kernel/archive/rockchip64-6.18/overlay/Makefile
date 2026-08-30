@@ -9,6 +9,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3308-i2c3-m0.dtbo \
 	rk3308-i2c3-m1.dtbo \
 	rk3308-i2c3.dtbo \
+	rk3308-napi-switch-sfp-1000basex.dtbo \
 	rk3308-spi1-w5500.dtbo \
 	rk3308-spi2-spidev.dtbo \
 	rk3308-uart0.dtbo \
