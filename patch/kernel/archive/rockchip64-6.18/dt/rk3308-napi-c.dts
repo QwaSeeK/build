@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright (c) 2019 Akash Gajjar <akash@openedev.com>
- * Copyright (c) 2019 Jagan Teki <jagan@openedev.com>
+ * Copyright (c) 2026 Nikita Maslo <nikitamalco203@gmail.com>
  */
 
 /dts-v1/;
@@ -10,14 +9,13 @@
 #include "rk3308.dtsi"
 
 / {
-	model = "NAPI-C\P\Slot";
+	model = "NAPI-C";
 	compatible = "radxa,rockpis", "rockchip,rk3308";
 
 	aliases {
 		ethernet0 = &gmac;
 		mmc0 = &emmc;
 		mmc1 = &sdmmc;
-		mmc2 = &sdio;
 	};
 
 	chosen {
@@ -46,13 +44,6 @@
 			label = "rockpis:blue:user";
 			linux,default-trigger = "heartbeat";
 		};
-	};
-
-	sdio_pwrseq: sdio-pwrseq {
-		compatible = "mmc-pwrseq-simple";
-		pinctrl-0 = <&wifi_enable_h>;
-		pinctrl-names = "default";
-		reset-gpios = <&gpio0 RK_PA2 GPIO_ACTIVE_LOW>;
 	};
 
 	vcc_1v8: vcc-1v8 {
@@ -175,20 +166,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&rtc_32k>;
 
-	bluetooth {
-		bt_reg_on: bt-reg-on {
-			rockchip,pins = <4 RK_PB3 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
-		bt_wake_host: bt-wake-host {
-			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_down>;
-		};
-
-		host_wake_bt: host-wake-bt {
-			rockchip,pins = <4 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-
 	gmac {
 		mac_rst: mac-rst {
 			rockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -210,16 +187,6 @@
 			rockchip,pins = <0 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
-
-	sdio-pwrseq {
-		wifi_enable_h: wifi-enable-h {
-			rockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
-		wifi_host_wake: wifi-host-wake {
-			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_down>;
-		};
-	};
 };
 
 &pwm0 {
@@ -230,32 +197,6 @@
 &saradc {
 	vref-supply = <&vcc_1v8>;
 	status = "okay";
-};
-
-&sdio {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	cap-sd-highspeed;
-	cap-sdio-irq;
-	keep-power-in-suspend;
-	max-frequency = <100000000>;
-	mmc-pwrseq = <&sdio_pwrseq>;
-	no-mmc;
-	no-sd;
-	non-removable;
-	sd-uhs-sdr50;
-	vmmc-supply = <&vcc_io>;
-	vqmmc-supply = <&vcc_1v8>;
-	status = "okay";
-
-	rtl8723ds: wifi@1 {
-		reg = <1>;
-		interrupt-parent = <&gpio0>;
-		interrupts = <RK_PA0 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "host-wake";
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_host_wake>;
-	};
 };
 
 &sdmmc {
@@ -284,20 +225,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&uart0_xfer>;
 	status = "okay";
-};
-
-&uart4 {
-	uart-has-rtscts;
-	status = "okay";
-
-	bluetooth {
-		compatible = "realtek,rtl8723ds-bt";
-		device-wake-gpios = <&gpio4 RK_PB2 GPIO_ACTIVE_HIGH>;
-		enable-gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
-		host-wake-gpios = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&bt_reg_on &bt_wake_host &host_wake_bt>;
-	};
 };
 
 &usb_host_ehci {
