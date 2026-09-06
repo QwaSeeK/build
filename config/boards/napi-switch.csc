@@ -26,7 +26,7 @@ BL31_BLOB="rk33/rk3308_bl31_v2.26.elf"
 FORCE_UBOOT_UPDATE="yes"
 
 OVERLAY_PREFIX="rk3308"
-VENDOR="Armbian-napilab"
+VENDOR="ArmbianNapi"
 KEEP_ORIGINAL_OS_RELEASE="yes"
 ROOTPWD="napilinux"
 CONSOLE_AUTOLOGIN="no"

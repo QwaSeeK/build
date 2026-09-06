@@ -9,9 +9,6 @@ BOARD_MAINTAINER=""
 BOOTCONFIG="napi-c-rk3308_defconfig"
 BOOT_FDT_FILE="rockchip/rk3308-napi-c.dtb"
 
-# edge (7.1) не заявлен: DTS платы и оверлеи rk3308 лежат только
-# в patch/kernel/archive/rockchip64-6.18 (current). Добавить в 7.1 —
-# скопировать туда dt/ и overlay/ и вернуть edge сюда.
 KERNEL_TARGET="current"
 KERNEL_TEST_TARGET="current"
 
@@ -30,7 +27,8 @@ FORCE_UBOOT_UPDATE="yes"
 OVERLAY_PREFIX="rk3308"
 DEFAULT_OVERLAYS="uart1 uart2-m0 uart3-m0 i2c1-ds1338 i2c3-m0 otg-host"
 
-VENDOR="Armbian-napilab"
+VENDOR="ArmbianNapi"
+HOST="napic"
 KEEP_ORIGINAL_OS_RELEASE="yes"
 ROOTPWD="napilinux"
 
@@ -44,16 +42,9 @@ function post_family_config__napi_c_boot_and_defaults() {
 
 	declare -g TZDATA="Europe/Moscow"
 
-	# Was INSTALL_HEADERS=yes on the old run-mynapi.sh command line; it is a genuine
-	# board property here (out-of-tree modules are the point of the board). Precedent:
-	# config/boards/orangepi5pro.csc:61. Still overridable from the CLI.
 	declare -g INSTALL_HEADERS="${INSTALL_HEADERS:-yes}"
 
-	# Overrides rockchip64_common.inc's family_tweaks_bsp, which ships rk3399 mali/vpu
-	# udev rules that are meaningless on RK3308. Same trick as config/boards/rockpi-s.conf.
 	function family_tweaks_bsp() {
-		# udev helper deriving fixed, unique MAC addresses for interfaces that would
-		# otherwise get random ones -- like the on-board WiFi.
 		install -m 755 "${SRC}/packages/bsp/rockpis/lib/udev/fixEtherAddr" \
 			"${destination}/lib/udev"
 		install -m 644 "${SRC}/packages/bsp/rockpis/etc/udev/rules.d/05-fixMACaddress.rules" \
@@ -103,9 +94,6 @@ function post_family_tweaks__napi_motd_no_wan_lookup_c() {
 function post_repo_customize_image__napi_napilab_packages_c() {
 	[[ ! -f "${SDCARD}/usr/share/keyrings/napilab.gpg" ]] && return 0
 	display_alert "${BOARD}" "installing napilab packages: mbusd gpiod" "info"
-	# No `apt-get purge libgpiod2 libgpiod-dev gpiod` any more: the Pin-Priority 1001
-	# entry in packages/bsp/napi/etc/apt/preferences.d/napilab lets apt replace (and even
-	# downgrade) the distro packages with the napilab ones on its own.
 	chroot_sdcard_apt_get_install mbusd gpiod
 	return 0
 }
