@@ -1,0 +1,27 @@
+From: Nikita Maslo <nikitamalco203@gmail.com>
+Subject: [PATCH] board: rockchip: evb_rk3308: detect eMMC vs SD NAND on NAPI-C
+---
+diff --git a/board/rockchip/evb_rk3308/evb_rk3308.c b/board/rockchip/evb_rk3308/evb_rk3308.c
+--- a/board/rockchip/evb_rk3308/evb_rk3308.c
++++ b/board/rockchip/evb_rk3308/evb_rk3308.c
+@@ -42,3 +42,20 @@
+ 	else
+ 		return false;
+ }
++
++#include <env.h>
++#include <mmc.h>
++
++int rk_board_late_init(void)
++{
++	struct mmc *mmc = find_mmc_device(0);
++	const char *kind = "none";
++
++	if (mmc && !mmc_init(mmc))
++		kind = IS_SD(mmc) ? "sdnand" : "emmc";
++
++	printf("NAPI-C: onboard storage detected as %s\n", kind);
++	env_set("napi_storage", kind);
++
++	return 0;
++}
