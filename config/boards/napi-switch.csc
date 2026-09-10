@@ -156,3 +156,17 @@ function image_specific_armbian_env_ready__napi_switch_extraargs() {
 	fi
 	return 0
 }
+
+function post_family_tweaks__napi_switch_prune_dtb() {
+	declare d
+	for d in "${SDCARD}"/boot/dtb-*; do
+		[[ -d "${d}" ]] || continue
+		display_alert "${BOARD}" "pruning DTBs in $(basename "${d}")" "info"
+		find "${d}" -mindepth 1 -maxdepth 1 -type d ! -name rockchip -exec rm -rf {} +
+		find "${d}/rockchip" -maxdepth 1 -type f -name '*.dtb' ! -name 'rk3308-napi-switch.dtb' -delete
+		if [[ -d "${d}/rockchip/overlay" ]]; then
+			find "${d}/rockchip/overlay" -maxdepth 1 -type f ! -name 'rk3308-*' -delete
+		fi
+	done
+	return 0
+}

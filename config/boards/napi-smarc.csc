@@ -29,6 +29,7 @@ DEFAULT_CONSOLE="serial"
 VENDOR="Armbian-napilab"
 KEEP_ORIGINAL_OS_RELEASE="yes"
 ROOTPWD="napilinux"
+CONSOLE_AUTOLOGIN="no"
 
 PACKAGE_LIST_BOARD="vim net-tools can-utils mbpoll minicom tcpdump screen memtester xxd tree \
 	util-linux-extra mosquitto mosquitto-clients i2c-tools python3-pymodbus python3-pip \
@@ -51,20 +52,22 @@ function post_family_tweaks_bsp__napi_bsp_cli_files_smarc() {
 	return 0
 }
 
-function post_family_tweaks__napi_firstrun_preset_smarc() {
-	display_alert "${BOARD}" "presetting armbian-firstlogin (root + user 'napi')" "info"
-	cat <<- 'NAPI_PRESET' > "${SDCARD}"/root/.not_logged_in_yet
-		PRESET_USER_SHELL=bash
-		PRESET_CONNECT_WIRELESS=n
-		SET_LANG_BASED_ON_LOCATION=n
-		PRESET_LOCALE=en_US.UTF-8
-		PRESET_TIMEZONE=Europe/Moscow
-		PRESET_ROOT_PASSWORD=napilinux
-		PRESET_USER_NAME=napi
-		PRESET_USER_PASSWORD=napilinux
-		PRESET_DEFAULT_REALNAME=NAPI
-	NAPI_PRESET
-	chmod 600 "${SDCARD}"/root/.not_logged_in_yet
+function post_family_tweaks__napi_smarc_provision_accounts() {
+	declare user_name="napi"
+	declare user_pass="napilinux"
+	declare group
+
+	display_alert "${BOARD}" "creating user '${user_name}' at build time" "info"
+	chroot_sdcard "useradd --create-home --shell /bin/bash --comment 'NAPI' '${user_name}'"
+	chroot_sdcard "echo '${user_name}:${user_pass}' | chpasswd"
+
+	for group in sudo netdev audio video disk tty users games dialout plugdev input \
+		bluetooth systemd-journal ssh render docker; do
+		chroot_sdcard "usermod -aG '${group}' '${user_name}' 2>/dev/null || true"
+	done
+
+	display_alert "${BOARD}" "disabling the first-login wizard, booting to a login prompt" "info"
+	run_host_command_logged rm -fv "${SDCARD}/root/.not_logged_in_yet"
 	return 0
 }
 
@@ -141,5 +144,19 @@ function image_specific_armbian_env_ready__napi_smarc_extraargs() {
 	else
 		echo "extraargs=${extraargs}" >> "${env_file}"
 	fi
+	return 0
+}
+
+function post_family_tweaks__napi_smarc_prune_dtb() {
+	declare d
+	for d in "${SDCARD}"/boot/dtb-*; do
+		[[ -d "${d}" ]] || continue
+		display_alert "${BOARD}" "pruning DTBs in $(basename "${d}")" "info"
+		find "${d}" -mindepth 1 -maxdepth 1 -type d ! -name rockchip -exec rm -rf {} +
+		find "${d}/rockchip" -maxdepth 1 -type f -name '*.dtb' ! -name 'rk3568-smarc.dtb' -delete
+		if [[ -d "${d}/rockchip/overlay" ]]; then
+			find "${d}/rockchip/overlay" -maxdepth 1 -type f ! -name 'rk3568-*' -delete
+		fi
+	done
 	return 0
 }
