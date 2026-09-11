@@ -7,7 +7,7 @@ BOARDFAMILY="rockchip64"
 BOARD_MAINTAINER=""
 
 BOOTCONFIG="napi-c-rk3308_defconfig"
-BOOT_FDT_FILE="rockchip/rk3308-napi-c-sdnand.dtb"
+BOOT_FDT_FILE="rockchip/rk3308-napi-c.dtb"
 
 KERNEL_TARGET="current"
 KERNEL_TEST_TARGET="current"
@@ -39,7 +39,7 @@ PACKAGE_LIST_BOARD="vim net-tools can-utils mbpoll minicom tcpdump screen memtes
 
 function post_family_config__napi_c_boot_and_defaults() {
 	declare -g BOOTDIR="u-boot-${BOARD}"
-	declare -g BOOTSCRIPT="boot-napi-c.cmd:boot.cmd"
+	declare -g BOOTSCRIPT="boot-rockchip64-ttyS0.cmd:boot.cmd"
 
 	declare -g TZDATA="Europe/Moscow"
 
@@ -120,7 +120,7 @@ function post_family_tweaks__napi_c_prune_dtb() {
 		[[ -d "${d}" ]] || continue
 		display_alert "${BOARD}" "pruning DTBs in $(basename "${d}")" "info"
 		find "${d}" -mindepth 1 -maxdepth 1 -type d ! -name rockchip -exec rm -rf {} +
-		find "${d}/rockchip" -maxdepth 1 -type f -name '*.dtb' ! -name 'rk3308-napi-c-*.dtb' -delete
+		find "${d}/rockchip" -maxdepth 1 -type f -name '*.dtb' ! -name 'rk3308-napi-c.dtb' -delete
 		if [[ -d "${d}/rockchip/overlay" ]]; then
 			find "${d}/rockchip/overlay" -maxdepth 1 -type f ! -name 'rk3308-*' -delete
 		fi

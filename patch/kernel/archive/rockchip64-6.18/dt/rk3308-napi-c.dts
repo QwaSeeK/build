@@ -3,6 +3,8 @@
  * Copyright (c) 2026 Nikita Maslo <nikitamalco203@gmail.com>
  */
 
+/dts-v1/;
+
 #include <dt-bindings/leds/common.h>
 #include "rk3308.dtsi"
 
@@ -154,7 +156,6 @@
 	vccio0-supply = <&vcc_io>;
 	vccio1-supply = <&vcc_io>;
 	vccio2-supply = <&vcc_1v8>;
-	/* vccio3 is the flash domain and differs per variant, see the .dts files */
 	vccio4-supply = <&vcc_1v8>;
 	vccio5-supply = <&vcc_io>;
 };
@@ -193,6 +194,19 @@
 
 &saradc {
 	vref-supply = <&vcc_1v8>;
+	status = "okay";
+};
+
+&emmc {
+	bus-width = <8>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	mmc-hs200-1_8v;
+	no-sdio;
+	non-removable;
+	pinctrl-names = "default";
+	pinctrl-0 = <&emmc_bus8 &emmc_clk &emmc_cmd>;
+	vmmc-supply = <&vcc_io>;
 	status = "okay";
 };
 
@@ -240,3 +254,4 @@
 &wdt {
 	status = "okay";
 };
+

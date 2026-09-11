@@ -9,8 +9,8 @@ defconfig.
 ---
  arch/arm/dts/rk3308-napi-c-u-boot.dtsi            |  12 ++++++++++++
  configs/napi-c-rk3308_defconfig                   |  74 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- dts/upstream/src/arm64/rockchip/rk3308-napi-c.dts | 317 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 403 insertions(+)
+ dts/upstream/src/arm64/rockchip/rk3308-napi-c.dts | 316 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 402 insertions(+)
  create mode 100644 arch/arm/dts/rk3308-napi-c-u-boot.dtsi
  create mode 100644 configs/napi-c-rk3308_defconfig
  create mode 100644 dts/upstream/src/arm64/rockchip/rk3308-napi-c.dts
@@ -56,7 +56,7 @@ index 0000000000..3e62c7c1a6
 +CONFIG_FIT=y
 +CONFIG_FIT_VERBOSE=y
 +CONFIG_BOOTDELAY=5
-+CONFIG_DEFAULT_FDT_FILE="rockchip/rk3308-napi-c-sdnand.dtb"
++CONFIG_DEFAULT_FDT_FILE="rockchip/rk3308-napi-c.dtb"
 +# CONFIG_DISPLAY_CPUINFO is not set
 +CONFIG_SPL_MAX_SIZE=0x40000
 +CONFIG_SPL_PAD_TO=0x7f8000
@@ -118,7 +118,7 @@ new file mode 100644
 index 0000000000..d2b6aa8ea1
 --- /dev/null
 +++ b/dts/upstream/src/arm64/rockchip/rk3308-napi-c.dts
-@@ -0,0 +1,317 @@
+@@ -0,0 +1,316 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright (c) 2019 Akash Gajjar <akash@openedev.com>
@@ -349,7 +349,6 @@ index 0000000000..d2b6aa8ea1
 +	vccio0-supply = <&vcc_io>;
 +	vccio1-supply = <&vcc_io>;
 +	vccio2-supply = <&vcc_io>;
-+	vccio3-supply = <&vcc_1v8>;
 +	vccio4-supply = <&vcc_1v8>;
 +	vccio5-supply = <&vcc_io>;
 +	status = "okay";
