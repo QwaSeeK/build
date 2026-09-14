@@ -1,0 +1,15 @@
+[Unit]
+Description=RSTP edge-port configuration for the KSZ9567S bridge
+Documentation=man:mstpctl(8) man:bridge-stp(8)
+After=systemd-networkd.service
+Wants=systemd-networkd.service
+ConditionPathIsDirectory=/sys/class/net
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/napi-rstp-config
+TimeoutStartSec=90
+
+[Install]
+WantedBy=multi-user.target
