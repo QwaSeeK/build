@@ -1,0 +1,23 @@
+network:
+  version: 2
+  renderer: networkd
+
+  ethernets:
+    lan1: {dhcp4: no, dhcp6: no, optional: true}
+    lan2: {dhcp4: no, dhcp6: no, optional: true}
+    lan3: {dhcp4: no, dhcp6: no, optional: true}
+    lan4: {dhcp4: no, dhcp6: no, optional: true}
+    lan5: {dhcp4: no, dhcp6: no, optional: true}
+    sfp:  {dhcp4: no, dhcp6: no, optional: true}
+
+  bridges:
+    br0:
+      interfaces: [lan1, lan2, lan3, lan4, lan5, sfp]
+      dhcp4: yes
+      dhcp6: no
+      optional: true
+      parameters:
+        stp: true
+        forward-delay: 4
+        hello-time: 1
+        max-age: 6
