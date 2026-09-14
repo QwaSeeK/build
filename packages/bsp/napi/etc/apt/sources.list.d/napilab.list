@@ -1,0 +1,10 @@
+# NapiLab package repository (mbusd, gpiod, ...).
+#
+# Signing key: /usr/share/keyrings/napilab.gpg, shipped by this same package.
+#   uid         Napilab <info@napilab.ru>
+#   pub         rsa4096 2026-04-04 [SC]
+#   fingerprint A037 8535 03D2 6E5C 9CD8  0FE0 B86A 2548 29D1 E128
+# Source of the key: https://repo.napilab.ru/napilab.gpg (served ASCII-armoured;
+# the shipped file is the `gpg --dearmor` output of it).
+
+deb [arch=arm64 signed-by=/usr/share/keyrings/napilab.gpg] https://repo.napilab.ru stable main
