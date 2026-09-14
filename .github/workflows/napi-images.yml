@@ -1,0 +1,194 @@
+# Builds NAPI board images workflow
+name: "NAPI images"
+
+on:
+  workflow_dispatch:
+    inputs:
+      napi_c:
+        description: "NAPI-C (RK3308)"
+        type: boolean
+        default: false
+      napi_switch:
+        description: "NAPI-Switch (RK3308)"
+        type: boolean
+        default: false
+      napi_smarc:
+        description: "NAPI-SMARC (RK3568)"
+        type: boolean
+        default: false
+      napi2:
+        description: "NAPI2 (RK3568)"
+        type: boolean
+        default: false
+      release:
+        description: "Userspace release"
+        type: choice
+        options: [trixie, noble, resolute]
+        default: trixie
+      variant:
+        description: "Image variant"
+        type: choice
+        options: [minimal, standard]
+        default: minimal
+
+permissions:
+  contents: read
+
+env:
+  BRANCH: current
+
+concurrency:
+  group: napi-images-${{ github.ref_type == 'tag' && github.ref_name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: "Prepare matrix and release"
+    runs-on: self-hosted
+    permissions:
+      contents: write
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      tag: ${{ steps.matrix.outputs.tag }}
+    steps:
+      - name: Build matrix from the selected boards
+        id: matrix
+        env:
+          SEL_NAPI_C: ${{ inputs.napi_c }}
+          SEL_NAPI_SWITCH: ${{ inputs.napi_switch }}
+          SEL_NAPI_SMARC: ${{ inputs.napi_smarc }}
+          SEL_NAPI2: ${{ inputs.napi2 }}
+        run: |
+          set -euo pipefail
+          # checkbox input -> board config name; a new board needs an input, a line here and an env entry
+          declare -A selected=(
+            [napi-c]="${SEL_NAPI_C}"
+            [napi-switch]="${SEL_NAPI_SWITCH}"
+            [napi-smarc]="${SEL_NAPI_SMARC}"
+            [napi2]="${SEL_NAPI2}"
+          )
+          boards=()
+          for board in napi-c napi-switch napi-smarc napi2; do
+            [[ "${selected[${board}]}" == "true" ]] && boards+=("${board}")
+          done
+          if (( ${#boards[@]} == 0 )); then
+            echo "::error::No board selected"
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="napi-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          fi
+
+          json=$(printf '"%s",' "${boards[@]}")
+          {
+            echo "matrix={\"board\":[${json%,}]}"
+            echo "tag=${tag}"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Boards: ${boards[*]}; tag: ${tag}"
+
+      - name: Create pre-release
+        uses: ncipollo/release-action@v1.21.0
+        with:
+          tag: ${{ steps.matrix.outputs.tag }}
+          commit: ${{ github.sha }}
+          name: "NAPI images ${{ steps.matrix.outputs.tag }}"
+          body: |
+            Kernel `${{ env.BRANCH }}`, release `${{ inputs.release }}`, variant `${{ inputs.variant }}`.
+            Commit ${{ github.sha }}, build ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Stays a pre-release until every selected board has built.
+          prerelease: true
+          makeLatest: "false"
+          allowUpdates: true
+
+  build:
+    name: "${{ matrix.board }} (${{ inputs.release }})"
+    needs: prepare
+    runs-on: self-hosted
+    timeout-minutes: 500
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          clean: false
+          persist-credentials: false
+
+      - name: Build image
+        env:
+          BOARD: ${{ matrix.board }}
+          RELEASE: ${{ inputs.release }}
+          VARIANT: ${{ inputs.variant }}
+        run: |
+          set -euo pipefail
+          minimal=no
+          [[ "${VARIANT}" == "minimal" ]] && minimal=yes
+
+          ./compile.sh build \
+            BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE="${RELEASE}" \
+            BUILD_MINIMAL="${minimal}" BUILD_DESKTOP=no KERNEL_CONFIGURE=no \
+            COMPRESS_OUTPUTIMAGE=sha,img,xz CLEAN_LEVEL=images \
+            LOCAL_MIRROR=stpete-mirror.armbian.com/apt
+
+      - name: Summary
+        env:
+          BOARD: ${{ matrix.board }}
+        run: |
+          shopt -s nullglob
+          images=(output/images/*.img.xz)
+          if (( ${#images[@]} == 0 )); then
+            echo "::error::The build produced no .img.xz"
+            exit 1
+          fi
+          {
+            echo "### ${BOARD}"
+            echo "| Image | Size |"
+            echo "|---|---|"
+            for image in "${images[@]}"; do
+              echo "| $(basename "${image}") | $(du -h "${image}" | cut -f1) |"
+            done
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release upload "${TAG}" output/images/*.img.xz output/images/*.img.xz.sha --clobber --repo "${GITHUB_REPOSITORY}"
+
+  finalize:
+    name: "Publish release"
+    needs: [prepare, build]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: self-hosted
+    permissions:
+      contents: write
+    steps:
+      - name: Publish, keep as pre-release, or drop the empty release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          set -euo pipefail
+          assets=$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')
+          if [[ "${BUILD_RESULT}" == "success" ]]; then
+            gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --prerelease=false --latest
+            echo "Published ${TAG} with ${assets} assets" >> "${GITHUB_STEP_SUMMARY}"
+          elif (( assets == 0 )); then
+            if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+              gh release delete "${TAG}" --repo "${GITHUB_REPOSITORY}" --yes
+            else
+              gh release delete "${TAG}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes
+            fi
+            echo "::error::No board built; deleted the empty release ${TAG}"
+            exit 1
+          else
+            echo "::warning::Some boards failed (build: ${BUILD_RESULT}); ${TAG} stays a pre-release with ${assets} assets"
+          fi
