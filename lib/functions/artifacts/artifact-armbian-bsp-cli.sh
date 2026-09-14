@@ -80,6 +80,12 @@ function artifact_armbian-bsp-cli_prepare_version() {
 		"${SRC}/config/optional/families/${LINUXFAMILY}/_packages/bsp-cli"
 		"${SRC}/config/optional/boards/${BOARD}/_packages/bsp-cli"
 	)
+	# NAPI boards install packages/bsp/napi/** from a post_family_tweaks_bsp hook; only the
+	# hook's *source text* is hashed above, so without this the deb would be served stale
+	# from cache whenever one of those static files changes. Board-scoped, so no other
+	# board's bsp-cli artifact version is affected. The napi-* glob covers napi-c,
+	# napi-switch and napi-smarc; napi2 predates that naming and is matched separately.
+	[[ "${BOARD}" == napi-* || "${BOARD}" == napi2 ]] && dirs_to_hash+=("${SRC}/packages/bsp/napi")
 	declare hash_files="undetermined"
 	calculate_hash_for_all_files_in_dirs "${dirs_to_hash[@]}"
 	packages_config_hash="${hash_files}"
