@@ -1,0 +1,15 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "rockchip,rk3308";
+
+	fragment@0 {
+		target = <&uart4>;
+		__overlay__ {
+			pinctrl-names = "default";
+			pinctrl-0 = <&uart4_xfer>;
+			status = "okay";
+		};
+	};
+};
