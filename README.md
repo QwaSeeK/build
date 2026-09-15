@@ -5,6 +5,14 @@
 
 # Armbian Linux Build Framework
 
+## Napi boards in support
+
+- Napi-C
+- Napi-P
+- Napi-Slot
+- Napi-PE
+- Napi-CE
+
 ## Purpose of This Repository
 
 The **Armbian Linux build framework** builds customizable OS images based on **Debian** or **Ubuntu** for **single-board computers (SBCs)** and other embedded devices. It assembles the kernel, bootloader, firmware, device trees and root filesystem into a reproducible image, with per-board and per-family configuration.
