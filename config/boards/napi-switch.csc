@@ -23,7 +23,7 @@ DDR_BLOB="rk33/rk3308_ddr_589MHz_uart0_m0_v2.07.bin"
 BL31_BLOB="rk33/rk3308_bl31_v2.26.elf"
 FORCE_UBOOT_UPDATE="yes"
 
-OVERLAY_PREFIX="rk3308"
+OVERLAY_PREFIX="napi-rk3308"
 VENDOR="ArmbianNapi"
 KEEP_ORIGINAL_OS_RELEASE="yes"
 ROOTPWD="napilinux"
