@@ -7,7 +7,7 @@ setenv load_addr "0x9000000"
 setenv overlay_error "false"
 # default values
 setenv rootdev "/dev/mmcblk0p1"
-setenv verbosity "1"
+setenv verbosity "4"
 setenv console "both"
 setenv bootlogo "false"
 setenv rootfstype "ext4"
@@ -33,7 +33,7 @@ if test "${bootlogo}" = "true"; then
 	setenv consoleargs "splash plymouth.ignore-serial-consoles ${consoleargs}"
 else
 	setenv consoleargs "splash=verbose ${consoleargs}"
-fi1
+fi
 
 # get PARTUUID of first partition on SD/eMMC the boot script was loaded from
 if test "${devtype}" = "mmc"; then part uuid mmc ${devnum}:${distro_bootpart} partuuid; fi
