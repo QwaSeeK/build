@@ -23,8 +23,8 @@ DDR_BLOB="rk33/rk3308_ddr_589MHz_uart0_m0_v2.07.bin"
 BL31_BLOB="rk33/rk3308_bl31_v2.26.elf"
 FORCE_UBOOT_UPDATE="yes"
 
-OVERLAY_PREFIX="rk3308"
-DEFAULT_OVERLAYS="uart1 uart2-m0 uart3-m0 i2c1-ds1338 i2c3-m0 otg-host"
+OVERLAY_PREFIX="napi-rk3308"
+DEFAULT_OVERLAYS="uart1 uart2-m0 uart3-m0 i2c1-ds1338 i2c3-m0 usb2-host"
 
 VENDOR="ArmbianNapi"
 HOST="napic"
