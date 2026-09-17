@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+&spi2{
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	w5500@0 {
+		compatible = "wiznet,w5500";
+		reg = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&w5500_int &w5500_rst>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <12 IRQ_TYPE_EDGE_FALLING>;
+		spi-max-frequency = <30000000>;
+	};
+};
+
+&pinctrl{
+	w5500 {
+		w5500_int: w5500-int {
+			rockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+
+		w5500_rst: w5500-rst {
+			rockchip,pins = <3 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+};
