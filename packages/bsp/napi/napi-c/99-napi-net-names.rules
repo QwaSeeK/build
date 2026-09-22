@@ -1,0 +1,5 @@
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="smsc95xx", KERNELS=="1-1.1:1.0", NAME="lanusb1"
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="smsc95xx", KERNELS=="1-1.2:1.0", NAME="lanusb2"
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="smsc95xx", KERNELS=="2-1.1:1.0", NAME="lanusb3"
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="smsc95xx", KERNELS=="2-1.2:1.0", NAME="lanusb4"
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="w5100", KERNELS=="spi2.0", NAME="lanw5500"
