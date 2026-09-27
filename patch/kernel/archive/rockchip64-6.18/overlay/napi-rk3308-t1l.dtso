@@ -1,0 +1,67 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+/ {
+	compatible = "rockchip,rk3308";
+
+	fragment@0 {
+		target = <&i2c1>;
+		__overlay__ {
+			status = "okay";
+			clock-frequency = <400000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			eeprom@50 {
+				compatible = "microchip,24lc64", "atmel,24c64";
+				reg = <0x50>;
+				status = "okay";
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&pinctrl>;
+		__overlay__ {
+			adin2111 {
+				adin_int: adin-int {
+					rockchip,pins = <2 RK_PB3 RK_FUNC_GPIO &pcfg_pull_none>;
+				};
+
+				adin_rst: adin-rst {
+					rockchip,pins = <2 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;
+				};
+
+				adin_bypass: adin-bypass {
+					rockchip,pins = <2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
+				};
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&spi1>;
+		__overlay__ {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			ethernet@0 {
+				compatible = "adi,adin2111";
+				reg = <0>;
+				spi-max-frequency = <24500000>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&adin_int &adin_rst &adin_bypass>;
+				interrupt-parent = <&gpio2>;
+				interrupts = <RK_PB3 IRQ_TYPE_LEVEL_LOW>;
+				reset-gpios = <&gpio2 RK_PA7 GPIO_ACTIVE_LOW>;
+				adi,spi-crc;
+				status = "okay";
+			};
+		};
+	};
+};

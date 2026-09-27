@@ -14,6 +14,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	napi-rk3308-spi2-w5500.dtbo \
 	napi-rk3308-spi1-spidev.dtbo \
 	napi-rk3308-spi2-spidev.dtbo \
+	napi-rk3308-t1l.dtbo \
 	napi-rk3308-uart0.dtbo \
 	napi-rk3308-uart1.dtbo \
 	napi-rk3308-uart2-m0.dtbo \
