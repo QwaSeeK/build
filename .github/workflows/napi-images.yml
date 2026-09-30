@@ -135,7 +135,7 @@ jobs:
             BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE="${RELEASE}" \
             BUILD_MINIMAL="${minimal}" BUILD_DESKTOP=no KERNEL_CONFIGURE=no \
             COMPRESS_OUTPUTIMAGE=sha,img,xz CLEAN_LEVEL=images \
-            LOCAL_MIRROR=stpete-mirror.armbian.com/apt
+            KERNEL_GIT=shallow
 
       - name: Summary
         env:
