@@ -22,7 +22,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	napi-rk3308-uart3-m1.dtbo \
 	napi-rk3308-uart4.dtbo \
 	napi-rk3308-usb-pcie-modem.dtbo \
-	napi-rk3308-usb2-host.dtbo \
+	napi-rk3308-usb20-host.dtbo \
 	napi-rk3568-napi2-lvds.dtbo \
 	napi-rk3308-i2c1-at24.dtbo \
 	hinlink-h88k-240x135-lcd.dtbo \
