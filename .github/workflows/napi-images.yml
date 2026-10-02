@@ -1,5 +1,6 @@
 # Builds NAPI board images workflow
 name: "NAPI images"
+run-name: ${{ github.ref_type == 'tag' && github.ref_name || format('{0} {1}', inputs.release, inputs.variant) }}
 
 on:
   workflow_dispatch:
@@ -23,13 +24,16 @@ on:
       release:
         description: "Userspace release"
         type: choice
-        options: [trixie, noble, resolute]
+        options: [trixie, resolute]
         default: trixie
       variant:
         description: "Image variant"
         type: choice
         options: [minimal, standard]
         default: minimal
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: read
@@ -50,6 +54,7 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       tag: ${{ steps.matrix.outputs.tag }}
+      image_version: ${{ steps.matrix.outputs.image_version }}
     steps:
       - name: Build matrix from the selected boards
         id: matrix
@@ -69,15 +74,19 @@ jobs:
           )
           boards=()
           for board in napi-c napi-switch napi-smarc napi2; do
-            [[ "${selected[${board}]}" == "true" ]] && boards+=("${board}")
+            if [[ "${GITHUB_EVENT_NAME}" == "push" || "${selected[${board}]}" == "true" ]]; then
+              boards+=("${board}")
+            fi
           done
           if (( ${#boards[@]} == 0 )); then
             echo "::error::No board selected"
             exit 1
           fi
 
+          image_version=""
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             tag="${GITHUB_REF_NAME}"
+            image_version="${tag#v}"
           else
             tag="napi-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
           fi
@@ -86,26 +95,27 @@ jobs:
           {
             echo "matrix={\"board\":[${json%,}]}"
             echo "tag=${tag}"
+            echo "image_version=${image_version}"
           } >> "${GITHUB_OUTPUT}"
-          echo "Boards: ${boards[*]}; tag: ${tag}"
+          echo "Boards: ${boards[*]}; tag: ${tag}; image version: ${image_version:-<revision from VERSION>}"
 
       - name: Create pre-release
         uses: ncipollo/release-action@v1.21.0
         with:
           tag: ${{ steps.matrix.outputs.tag }}
           commit: ${{ github.sha }}
-          name: "NAPI images ${{ steps.matrix.outputs.tag }}"
+          name: "${{ steps.matrix.outputs.tag }}"
           body: |
-            Kernel `${{ env.BRANCH }}`, release `${{ inputs.release }}`, variant `${{ inputs.variant }}`.
+            Kernel `${{ env.BRANCH }}`, release `${{ inputs.release || 'resolute' }}`, variant `${{ inputs.variant || 'standard' }}`.
             Commit ${{ github.sha }}, build ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-            Stays a pre-release until every selected board has built.
+            ${{ github.ref_type == 'tag' && 'Stays a pre-release until every selected board has built.' || 'Manual build, stays a pre-release.' }}
           prerelease: true
           makeLatest: "false"
           allowUpdates: true
 
   build:
-    name: "${{ matrix.board }} (${{ inputs.release }})"
+    name: "${{ matrix.board }} (${{ inputs.release || 'resolute' }})"
     needs: prepare
     runs-on: self-hosted
     timeout-minutes: 500
@@ -124,18 +134,21 @@ jobs:
       - name: Build image
         env:
           BOARD: ${{ matrix.board }}
-          RELEASE: ${{ inputs.release }}
-          VARIANT: ${{ inputs.variant }}
+          RELEASE: ${{ inputs.release || 'resolute' }}
+          VARIANT: ${{ inputs.variant || 'standard' }}
+          IMAGE_VERSION: ${{ needs.prepare.outputs.image_version }}
         run: |
           set -euo pipefail
           minimal=no
           [[ "${VARIANT}" == "minimal" ]] && minimal=yes
+          args=()
+          [[ -n "${IMAGE_VERSION}" ]] && args+=("IMAGE_VERSION=${IMAGE_VERSION}")
 
           ./compile.sh build \
             BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE="${RELEASE}" \
             BUILD_MINIMAL="${minimal}" BUILD_DESKTOP=no KERNEL_CONFIGURE=no \
             COMPRESS_OUTPUTIMAGE=sha,img,xz CLEAN_LEVEL=images \
-            KERNEL_GIT=shallow
+            KERNEL_GIT=shallow "${args[@]}"
 
       - name: Summary
         env:
@@ -178,9 +191,13 @@ jobs:
         run: |
           set -euo pipefail
           assets=$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')
-          if [[ "${BUILD_RESULT}" == "success" ]]; then
-            gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --prerelease=false --latest
+          if [[ "${BUILD_RESULT}" == "success" && "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            # only tag builds become real releases; the pre-release notice goes away with them
+            notes=$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json body --jq .body | sed '/^Stays a pre-release/d')
+            gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --prerelease=false --latest --notes "${notes}"
             echo "Published ${TAG} with ${assets} assets" >> "${GITHUB_STEP_SUMMARY}"
+          elif [[ "${BUILD_RESULT}" == "success" ]]; then
+            echo "Manual build ${TAG} stays a pre-release with ${assets} assets" >> "${GITHUB_STEP_SUMMARY}"
           elif (( assets == 0 )); then
             if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
               gh release delete "${TAG}" --repo "${GITHUB_REPOSITORY}" --yes
