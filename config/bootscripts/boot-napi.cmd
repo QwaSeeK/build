@@ -7,7 +7,7 @@ setenv load_addr "0x9000000"
 setenv overlay_error "false"
 # default values
 setenv rootdev "/dev/mmcblk0p1"
-setenv verbosity "4"
+setenv verbosity "1"
 setenv console "both"
 setenv bootlogo "false"
 setenv rootfstype "ext4"
@@ -38,7 +38,7 @@ fi
 # get PARTUUID of first partition on SD/eMMC the boot script was loaded from
 if test "${devtype}" = "mmc"; then part uuid mmc ${devnum}:${distro_bootpart} partuuid; fi
 
-setenv bootargs "root=${rootdev} rootwait rootfstype=${rootfstype} ${consoleargs} consoleblank=0 loglevel=${verbosity} ubootpart=${partuuid} usb-storage.quirks=${usbstoragequirks} ${extraargs} ${extraboardargs}"
+setenv bootargs "root=${rootdev} rootwait rootfstype=${rootfstype} ${consoleargs} consoleblank=0 loglevel=${verbosity} ubootpart=${partuuid} usb-storage.quirks=${usbstoragequirks} ${extraargs} ${extraboardargs} fsck.mode=force fsck.repair=yes"
 
 if test "${docker_optimizations}" = "on"; then setenv bootargs "${bootargs} cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory"; fi
 
