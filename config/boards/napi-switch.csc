@@ -9,7 +9,7 @@ BOARD_MAINTAINER=""
 BOOTCONFIG="napi-switch-rk3308_defconfig"
 BOOT_FDT_FILE="rockchip/rk3308-napi-switch.dtb"
 
-KERNEL_TARGET="current"
+KERNEL_TARGET="current,edge"
 KERNEL_TEST_TARGET="current"
 
 DEFAULT_CONSOLE="serial"
