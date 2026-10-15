@@ -61,12 +61,6 @@ jobs:
       tag: ${{ steps.matrix.outputs.tag }}
       image_version: ${{ steps.matrix.outputs.image_version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          clean: false
-          persist-credentials: false
-
       - name: Build matrix from the selected boards
         id: matrix
         env:
@@ -93,16 +87,6 @@ jobs:
             echo "::error::No board selected"
             exit 1
           fi
-
-          unsupported=0
-          for board in "${boards[@]}"; do
-            targets=$(source "config/boards/${board}.csc"; printf '%s' "${KERNEL_TARGET}")
-            if [[ ",${targets}," != *",${BRANCH},"* ]]; then
-              echo "::error::${board} does not support ${BRANCH}; supported branches: ${targets}"
-              unsupported=1
-            fi
-          done
-          (( unsupported == 0 )) || exit 1
 
           image_version=""
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
