@@ -1,6 +1,6 @@
 # Builds NAPI board images workflow
 name: "NAPI images"
-run-name: ${{ github.ref_type == 'tag' && github.ref_name || format('{0} {1}', inputs.release, inputs.variant) }}
+run-name: ${{ github.ref_type == 'tag' && github.ref_name || format('{0} {1} {2}', inputs.release, inputs.variant, inputs.kernel_branch) }}
 
 on:
   workflow_dispatch:
@@ -21,6 +21,11 @@ on:
         description: "NAPI2 (RK3568)"
         type: boolean
         default: false
+      kernel_branch:
+        description: "Kernel branch"
+        type: choice
+        options: [current, edge]
+        default: current
       release:
         description: "Userspace release"
         type: choice
@@ -39,7 +44,7 @@ permissions:
   contents: read
 
 env:
-  BRANCH: current
+  BRANCH: ${{ inputs.kernel_branch || 'current' }}
 
 concurrency:
   group: napi-images-${{ github.ref_type == 'tag' && github.ref_name || github.run_id }}
@@ -56,6 +61,12 @@ jobs:
       tag: ${{ steps.matrix.outputs.tag }}
       image_version: ${{ steps.matrix.outputs.image_version }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+        with:
+          clean: false
+          persist-credentials: false
+
       - name: Build matrix from the selected boards
         id: matrix
         env:
@@ -82,6 +93,16 @@ jobs:
             echo "::error::No board selected"
             exit 1
           fi
+
+          unsupported=0
+          for board in "${boards[@]}"; do
+            targets=$(source "config/boards/${board}.csc"; printf '%s' "${KERNEL_TARGET}")
+            if [[ ",${targets}," != *",${BRANCH},"* ]]; then
+              echo "::error::${board} does not support ${BRANCH}; supported branches: ${targets}"
+              unsupported=1
+            fi
+          done
+          (( unsupported == 0 )) || exit 1
 
           image_version=""
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
@@ -115,7 +136,7 @@ jobs:
           allowUpdates: true
 
   build:
-    name: "${{ matrix.board }} (${{ inputs.release || 'resolute' }})"
+    name: "${{ matrix.board }} (${{ inputs.release || 'resolute' }}, ${{ inputs.kernel_branch || 'current' }})"
     needs: prepare
     runs-on: self-hosted
     timeout-minutes: 500
