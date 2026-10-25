@@ -1,0 +1,24 @@
+From: NAPI loop <noreply@local>
+Date: Thu, 23 Oct 2026 23:10:00 +0000
+Subject: [PATCH] configs: napi-c: raise PHY autoneg timeout for cold-boot loop detect
+
+On a passive single-port Ethernet loopback the PHY autonegotiates against
+its own reflected link pulses, which on a cold start takes ~12-13s to bring
+the link up (observed in Linux: "end0: Link is Up" at ~13s). U-Boot's
+default CONFIG_PHY_ANEG_TIMEOUT is 4000ms, so eth_init() in `loopdetect`
+times out with the link still down and reports no loopback -> the board
+wrongly boots the SD instead of the internal flash on cold power-on. (A warm
+`reboot` kept the PHY linked, which is why it was intermittent.)
+
+Raise the timeout to 20000ms so eth_init() waits for the slow loopback link
+to come up before loopdetect probes. Trade-off: when no loopback is present
+the link never comes up and this adds up to ~15s to the (SD) boot.
+---
+diff --git a/configs/napi-c-rk3308_defconfig b/configs/napi-c-rk3308_defconfig
+--- a/configs/napi-c-rk3308_defconfig
++++ b/configs/napi-c-rk3308_defconfig
+@@ -75,3 +75,4 @@
+ CONFIG_CMD_NAPI_LOOPDETECT=y
+ CONFIG_USE_PREBOOT=y
+ CONFIG_PREBOOT="loopdetect; if test \"${napi_loop}\" = 1; then echo NAPI loopback present: booting eMMC first; setenv boot_targets \"mmc0 mmc1 nvme scsi usb pxe dhcp spi\"; fi"
++CONFIG_PHY_ANEG_TIMEOUT=20000

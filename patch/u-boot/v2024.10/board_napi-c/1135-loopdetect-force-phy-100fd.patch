@@ -1,0 +1,101 @@
+From: NAPI loop <noreply@local>
+Date: Fri, 24 Oct 2026 10:30:00 +0000
+Subject: [PATCH] net: napi-c: force PHY 100/full (no autoneg) for fast loopdetect
+
+The passive single-port loopback makes the PHY autonegotiate against its
+own reflected link pulses, which takes ~13s to bring the link up on a cold
+boot; patch 1134 worked around that by raising CONFIG_PHY_ANEG_TIMEOUT to
+20000, at the cost of every no-loopback (SD) cold boot waiting out that
+~20s timeout before loopdetect gives up.
+
+Force the onboard Designware PHY to a fixed 100BASE-TX full-duplex link
+with autonegotiation disabled (new CONFIG_NAPI_PHY_FORCE_100FD):
+
+  * dw_phy_init(): set autoneg=disable, speed=100, duplex=full before
+    phy_config(), so genphy_config_aneg() takes the genphy_setup_forced()
+    path and writes a forced BMCR instead of starting autoneg.
+  * designware_eth_init(): since genphy_update_link() returns immediately
+    in forced mode, poll the link for up to 3s after phy_startup() so a
+    loopback that is coming up is still caught.
+
+Result: a loopback links in ~1-2s (link detected on signal, no autoneg
+handshake) and no-loopback is detected in ~3s instead of ~20s - the delay
+is cut in both directions. If the PHY somehow fails to link in forced mode
+the behaviour falls back to the autoneg path bounded by PHY_ANEG_TIMEOUT,
+so this is a strict improvement with no regression.
+---
+--- a/drivers/net/designware.c	2026-10-24 10:24:09.613279344 +0000
++++ b/drivers/net/designware.c	2026-10-24 10:24:23.561364609 +0000
+@@ -431,6 +431,22 @@
+ 		return ret;
+ 	}
+ 
++	/*
++	 * In forced (no-autoneg) mode genphy_update_link() returns at once, so
++	 * the link may still be down on the first read while a passive
++	 * loopback comes up. Poll briefly for the link instead of giving up;
++	 * if no loopback is present it stays down and we bail out quickly.
++	 */
++	if (IS_ENABLED(CONFIG_NAPI_PHY_FORCE_100FD) && !priv->phydev->link) {
++		int wait_ms;
++
++		for (wait_ms = 0; wait_ms < 3000 && !priv->phydev->link;
++		     wait_ms += 100) {
++			mdelay(100);
++			genphy_update_link(priv->phydev);
++		}
++	}
++
+ 	ret = dw_adjust_link(priv, mac_p, priv->phydev);
+ 	if (ret)
+ 		return ret;
+@@ -617,6 +633,22 @@
+ 	phydev->advertising = phydev->supported;
+ 
+ 	priv->phydev = phydev;
++
++	if (IS_ENABLED(CONFIG_NAPI_PHY_FORCE_100FD)) {
++		/*
++		 * Force a fixed 100BASE-TX full-duplex link with autoneg
++		 * disabled. A passive single-port loopback then links in
++		 * ~1-2s (no autoneg handshake against its own reflected link
++		 * pulses, which otherwise takes ~13s), and when no loopback is
++		 * present the link stays down and is detected at once instead
++		 * of waiting out CONFIG_PHY_ANEG_TIMEOUT. Used by the NAPI-C
++		 * 'loopdetect' boot selector.
++		 */
++		phydev->autoneg = AUTONEG_DISABLE;
++		phydev->speed = SPEED_100;
++		phydev->duplex = DUPLEX_FULL;
++	}
++
+ 	phy_config(phydev);
+ 
+ 	return 0;
+--- a/drivers/net/Kconfig	2026-10-24 10:24:09.640912467 +0000
++++ b/drivers/net/Kconfig	2026-10-24 10:24:31.030095154 +0000
+@@ -787,6 +787,17 @@
+ 	  This driver provides Rockchip SoCs network support based on the
+ 	  Synopsys Designware driver.
+ 
++config NAPI_PHY_FORCE_100FD
++	bool "NAPI-C: force onboard PHY to 100/full, no autoneg (fast loopdetect)"
++	depends on ETH_DESIGNWARE
++	help
++	  Force the Designware MAC's PHY to a fixed 100BASE-TX full-duplex link
++	  with autonegotiation disabled. A passive single-port loopback then
++	  links in ~1-2s instead of ~13s (no autoneg handshake), and when no
++	  loopback is present the link stays down and is detected at once
++	  instead of waiting out PHY_ANEG_TIMEOUT. Intended for the NAPI-C
++	  'loopdetect' boot selector.
++
+ config RENESAS_ETHER_SWITCH
+ 	bool "Renesas Ethernet Switch support"
+ 	depends on DM_ETH && R8A779F0
+--- a/configs/napi-c-rk3308_defconfig
++++ b/configs/napi-c-rk3308_defconfig
+@@ -76,3 +76,4 @@
+ CONFIG_USE_PREBOOT=y
+ CONFIG_PREBOOT="loopdetect; if test \"${napi_loop}\" = 1; then echo NAPI loopback present: booting eMMC first; setenv boot_targets \"mmc0 mmc1 nvme scsi usb pxe dhcp spi\"; fi"
+ CONFIG_PHY_ANEG_TIMEOUT=20000
++CONFIG_NAPI_PHY_FORCE_100FD=y

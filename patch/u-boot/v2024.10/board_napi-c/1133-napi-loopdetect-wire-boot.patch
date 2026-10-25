@@ -1,0 +1,28 @@
+From: NAPI loop <noreply@local>
+Date: Thu, 23 Oct 2026 16:10:00 +0000
+Subject: [PATCH] configs: napi-c: run loopdetect at preboot, boot eMMC on loop
+
+Wires the 'loopdetect' command (added by the previous patch) into the
+NAPI-C boot flow via the board defconfig:
+
+  * CONFIG_USE_PREBOOT + CONFIG_PREBOOT run 'loopdetect' before the boot
+    command, setting env 'napi_loop'.
+  * When napi_loop=1 (single-port loopback plug present on the onboard
+    ethernet) boot_targets is reordered eMMC-first (mmc0 mmc1 ...), so the
+    stock BOOTSTD 'bootflow scan' boots the eMMC OS, falling back to the SD
+    (mmc1) if the eMMC is not bootable.
+  * When no loopback is present boot_targets keeps its default SD-first
+    order (mmc1 mmc0 ...), so the board boots whatever is on the SD card.
+
+Detection now lives entirely in the eMMC U-Boot; the old SD-side sector-30000
+NAND/PERM flag and the Linux detector service are no longer used.
+---
+diff --git a/configs/napi-c-rk3308_defconfig b/configs/napi-c-rk3308_defconfig
+--- a/configs/napi-c-rk3308_defconfig
++++ b/configs/napi-c-rk3308_defconfig
+@@ -73,3 +73,5 @@
+ CONFIG_LZO=y
+ CONFIG_ERRNO_STR=y
+ CONFIG_CMD_NAPI_LOOPDETECT=y
++CONFIG_USE_PREBOOT=y
++CONFIG_PREBOOT="loopdetect; if test \"${napi_loop}\" = 1; then echo NAPI loopback present: booting eMMC first; setenv boot_targets \"mmc0 mmc1 nvme scsi usb pxe dhcp spi\"; fi"

@@ -1,0 +1,25 @@
+From: NAPI loop <noreply@local>
+Date: Fri, 24 Oct 2026 11:00:00 +0000
+Subject: [PATCH] configs: napi-c: boot USB first when loopback present
+
+Extends the loopdetect preboot so that when the single-port loopback plug is
+present (napi_loop=1) the board tries a USB mass-storage device first, then
+the internal flash (mmc0), then the SD (mmc1). 'usb start' is run explicitly
+so the USB bus is enumerated before 'bootflow scan' walks boot_targets.
+
+When no loopback is present the default SD-first boot_targets is kept
+unchanged, so the normal field behaviour and task-1 (loop -> internal flash
+when no USB media) are preserved: with the plug but no bootable USB device,
+bootflow scan simply falls through USB to mmc0 (internal flash).
+
+Only EHCI is enabled (no OHCI), so use a USB 2.0 (high-speed) device; a
+USB 1.1 stick may not enumerate.
+---
+diff --git a/configs/napi-c-rk3308_defconfig b/configs/napi-c-rk3308_defconfig
+--- a/configs/napi-c-rk3308_defconfig
++++ b/configs/napi-c-rk3308_defconfig
+@@ -77,3 +77,3 @@
+ CONFIG_USE_PREBOOT=y
+-CONFIG_PREBOOT="loopdetect; if test \"${napi_loop}\" = 1; then echo NAPI loopback present: booting eMMC first; setenv boot_targets \"mmc0 mmc1 nvme scsi usb pxe dhcp spi\"; fi"
++CONFIG_PREBOOT="loopdetect; if test \"${napi_loop}\" = 1; then echo NAPI loopback present: booting USB then eMMC; usb start; setenv boot_targets \"usb mmc0 mmc1 nvme scsi pxe dhcp spi\"; fi"
+ CONFIG_PHY_ANEG_TIMEOUT=20000
