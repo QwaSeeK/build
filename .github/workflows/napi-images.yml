@@ -1,6 +1,6 @@
 # Builds NAPI board images workflow
 name: "NAPI images"
-run-name: ${{ github.ref_type == 'tag' && github.ref_name || format('{0} {1} {2}', inputs.release, inputs.variant, inputs.kernel_branch) }}
+run-name: ${{ github.ref_type == 'tag' && github.ref_name || format('{0} {1}', inputs.release, inputs.variant) }}
 
 on:
   workflow_dispatch:
@@ -21,8 +21,12 @@ on:
         description: "NAPI2 (RK3568)"
         type: boolean
         default: false
+      napi_m:
+        description: "NAPI-M (RK3562, vendor 6.1)"
+        type: boolean
+        default: false
       kernel_branch:
-        description: "Kernel branch"
+        description: "Kernel branch for RK3308/RK3568"
         type: choice
         options: [current, edge]
         default: current
@@ -68,19 +72,25 @@ jobs:
           SEL_NAPI_SWITCH: ${{ inputs.napi_switch }}
           SEL_NAPI_SMARC: ${{ inputs.napi_smarc }}
           SEL_NAPI2: ${{ inputs.napi2 }}
+          SEL_NAPI_M: ${{ inputs.napi_m }}
         run: |
           set -euo pipefail
-          # checkbox input -> board config name; a new board needs an input, a line here and an env entry
+          # Map checkbox inputs to board configurations.
           declare -A selected=(
             [napi-c]="${SEL_NAPI_C}"
             [napi-switch]="${SEL_NAPI_SWITCH}"
             [napi-smarc]="${SEL_NAPI_SMARC}"
             [napi2]="${SEL_NAPI2}"
+            [napi-m]="${SEL_NAPI_M}"
           )
           boards=()
-          for board in napi-c napi-switch napi-smarc napi2; do
+          builds=()
+          for board in napi-c napi-switch napi-smarc napi2 napi-m; do
             if [[ "${GITHUB_EVENT_NAME}" == "push" || "${selected[${board}]}" == "true" ]]; then
+              branch="${BRANCH}"
+              [[ "${board}" == "napi-m" ]] && branch=vendor
               boards+=("${board}")
+              builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\"}")
             fi
           done
           if (( ${#boards[@]} == 0 )); then
@@ -96,9 +106,9 @@ jobs:
             tag="napi-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
           fi
 
-          json=$(printf '"%s",' "${boards[@]}")
+          json=$(printf '%s,' "${builds[@]}")
           {
-            echo "matrix={\"board\":[${json%,}]}"
+            echo "matrix={\"include\":[${json%,}]}"
             echo "tag=${tag}"
             echo "image_version=${image_version}"
           } >> "${GITHUB_OUTPUT}"
@@ -111,7 +121,7 @@ jobs:
           commit: ${{ github.sha }}
           name: "${{ steps.matrix.outputs.tag }}"
           body: |
-            Kernel `${{ env.BRANCH }}`, release `${{ inputs.release || 'resolute' }}`, variant `${{ inputs.variant || 'standard' }}`.
+            Kernel `${{ env.BRANCH }}` (NAPI-M: `vendor`), release `${{ inputs.release || 'resolute' }}`, variant `${{ inputs.variant || 'standard' }}`.
             Commit ${{ github.sha }}, build ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
             ${{ github.ref_type == 'tag' && 'Stays a pre-release until every selected board has built.' || 'Manual build, stays a pre-release.' }}
@@ -120,7 +130,7 @@ jobs:
           allowUpdates: true
 
   build:
-    name: "${{ matrix.board }} (${{ inputs.release || 'resolute' }}, ${{ inputs.kernel_branch || 'current' }})"
+    name: "${{ matrix.board }} (${{ inputs.release || 'resolute' }}, ${{ matrix.branch }})"
     needs: prepare
     runs-on: self-hosted
     timeout-minutes: 500
@@ -139,6 +149,7 @@ jobs:
       - name: Build image
         env:
           BOARD: ${{ matrix.board }}
+          BRANCH: ${{ matrix.branch }}
           RELEASE: ${{ inputs.release || 'resolute' }}
           VARIANT: ${{ inputs.variant || 'standard' }}
           IMAGE_VERSION: ${{ needs.prepare.outputs.image_version }}
