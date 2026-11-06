@@ -1,0 +1,5 @@
+config:
+  dts-directories:
+    - { source: "dt", target: "arch/arm64/boot/dts/rockchip" }
+  auto-patch-dt-makefile:
+    - { directory: "arch/arm64/boot/dts/rockchip", config-var: "CONFIG_ARCH_ROCKCHIP", add-only: true }
