@@ -18,8 +18,6 @@ FULL_DESKTOP="no"
 
 DEFAULT_CONSOLE="serial"
 
-VENDOR="Armbian-napilab"
-KEEP_ORIGINAL_OS_RELEASE="yes"
 ROOTPWD="napilinux"
 NAPI_EXTRAARGS="cma=256M console=tty1"
 CONSOLE_AUTOLOGIN="no"
