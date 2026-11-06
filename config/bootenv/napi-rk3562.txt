@@ -1,0 +1,4 @@
+verbosity=4
+bootlogo=false
+console=both
+serialcon=ttyS0,1500000
