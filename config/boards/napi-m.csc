@@ -22,6 +22,9 @@ CONSOLE_AUTOLOGIN="no"
 PACKAGE_LIST_BOARD="vim net-tools minicom tcpdump screen memtester xxd tree i2c-tools"
 
 function post_family_config__napi_m_vendor() {
+	declare -g BOOTSOURCE="https://github.com/QwaSeeK/u-boot.git"
+	declare -g BOOTBRANCH="branch:rk3562-vendor"
+	declare -g BOOTPATCHDIR="none"
 	declare -g BOOTDIR="u-boot-${BOARD}"
 	declare -g BOOTDELAY=2
 }
