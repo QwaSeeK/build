@@ -7,11 +7,14 @@ BOARD_MAINTAINER="QwaSeeK"
 
 BOOTCONFIG="napi2-rk3568_defconfig"
 BOOT_FDT_FILE="rockchip/rk3568-napi2.dtb"
+BOOTBRANCH_BOARD="tag:v2026.04"
+BOOTPATCHDIR="v2026.04"
+BOOTDIR="u-boot-napi2"
 
 KERNEL_TARGET="current,edge"
 KERNEL_TEST_TARGET="current"
 
-BOOT_SCENARIO="spl-blobs"
+BOOT_SCENARIO="binman"
 IMAGE_PARTITION_TABLE="gpt"
 BOOT_LOGO="no"
 
