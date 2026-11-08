@@ -18,7 +18,11 @@ on:
         type: boolean
         default: false
       napi2:
-        description: "NAPI2 (RK3568)"
+        description: "NAPI2 CLI (RK3568)"
+        type: boolean
+        default: false
+      napi2_gnome:
+        description: "NAPI2 GNOME desktop"
         type: boolean
         default: false
       napi_m:
@@ -36,7 +40,7 @@ on:
         options: [trixie, resolute]
         default: trixie
       variant:
-        description: "Image variant"
+        description: "CLI image variant"
         type: choice
         options: [minimal, standard]
         default: minimal
@@ -72,7 +76,9 @@ jobs:
           SEL_NAPI_SWITCH: ${{ inputs.napi_switch }}
           SEL_NAPI_SMARC: ${{ inputs.napi_smarc }}
           SEL_NAPI2: ${{ inputs.napi2 }}
+          SEL_NAPI2_GNOME: ${{ inputs.napi2_gnome }}
           SEL_NAPI_M: ${{ inputs.napi_m }}
+          CLI_VARIANT: ${{ inputs.variant || 'standard' }}
         run: |
           set -euo pipefail
           # Map checkbox inputs to board configurations.
@@ -90,11 +96,15 @@ jobs:
               branch="${BRANCH}"
               [[ "${board}" == "napi-m" ]] && branch=vendor
               boards+=("${board}")
-              builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\"}")
+              builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"variant\":\"${CLI_VARIANT}\"}")
             fi
           done
-          if (( ${#boards[@]} == 0 )); then
-            echo "::error::No board selected"
+          if [[ "${SEL_NAPI2_GNOME}" == "true" ]]; then
+            boards+=("napi2-gnome")
+            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"gnome\"}")
+          fi
+          if (( ${#builds[@]} == 0 )); then
+            echo "::error::No image selected"
             exit 1
           fi
 
@@ -122,6 +132,7 @@ jobs:
           name: "${{ steps.matrix.outputs.tag }}"
           body: |
             Kernel `${{ env.BRANCH }}` (NAPI-M: `vendor`), release `${{ inputs.release || 'resolute' }}`, variant `${{ inputs.variant || 'standard' }}`.
+            NAPI2 GNOME desktop: ${{ inputs.napi2_gnome && 'included' || 'not selected' }}.
             Commit ${{ github.sha }}, build ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
             ${{ github.ref_type == 'tag' && 'Stays a pre-release until every selected board has built.' || 'Manual build, stays a pre-release.' }}
@@ -130,7 +141,7 @@ jobs:
           allowUpdates: true
 
   build:
-    name: "${{ matrix.board }} (${{ inputs.release || 'resolute' }}, ${{ matrix.branch }})"
+    name: "${{ matrix.board }} (${{ inputs.release || 'resolute' }}, ${{ matrix.branch }}, ${{ matrix.variant }})"
     needs: prepare
     runs-on: self-hosted
     timeout-minutes: 500
@@ -151,24 +162,30 @@ jobs:
           BOARD: ${{ matrix.board }}
           BRANCH: ${{ matrix.branch }}
           RELEASE: ${{ inputs.release || 'resolute' }}
-          VARIANT: ${{ inputs.variant || 'standard' }}
+          VARIANT: ${{ matrix.variant }}
           IMAGE_VERSION: ${{ needs.prepare.outputs.image_version }}
         run: |
           set -euo pipefail
           minimal=no
+          desktop=no
           [[ "${VARIANT}" == "minimal" ]] && minimal=yes
           args=()
+          if [[ "${VARIANT}" == "gnome" ]]; then
+            desktop=yes
+            args+=("DESKTOP_ENVIRONMENT=gnome" "DESKTOP_TIER=mid")
+          fi
           [[ -n "${IMAGE_VERSION}" ]] && args+=("IMAGE_VERSION=${IMAGE_VERSION}")
 
           ./compile.sh build \
             BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE="${RELEASE}" \
-            BUILD_MINIMAL="${minimal}" BUILD_DESKTOP=no KERNEL_CONFIGURE=no \
+            BUILD_MINIMAL="${minimal}" BUILD_DESKTOP="${desktop}" KERNEL_CONFIGURE=no \
             COMPRESS_OUTPUTIMAGE=sha,img,xz CLEAN_LEVEL=images \
             KERNEL_GIT=shallow "${args[@]}"
 
       - name: Summary
         env:
           BOARD: ${{ matrix.board }}
+          VARIANT: ${{ matrix.variant }}
         run: |
           shopt -s nullglob
           images=(output/images/*.img.xz)
@@ -177,7 +194,7 @@ jobs:
             exit 1
           fi
           {
-            echo "### ${BOARD}"
+            echo "### ${BOARD} (${VARIANT})"
             echo "| Image | Size |"
             echo "|---|---|"
             for image in "${images[@]}"; do
