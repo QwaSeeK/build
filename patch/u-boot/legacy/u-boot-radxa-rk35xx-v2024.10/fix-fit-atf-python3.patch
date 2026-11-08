@@ -1,0 +1,24 @@
+Subject: [PATCH] rockchip: decode BL31 with Python 3
+
+Missing Python 2 leaves the FIT image without trusted firmware.
+Stop FIT generation when BL31 decoding fails.
+
+--- a/arch/arm/mach-rockchip/decode_bl31.py
++++ b/arch/arm/mach-rockchip/decode_bl31.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2
++#!/usr/bin/env python3
+ #
+ # Copyright (C) 2020 Rockchip Electronics Co., Ltd
+ #
+--- a/arch/arm/mach-rockchip/fit_nodes.sh
++++ b/arch/arm/mach-rockchip/fit_nodes.sh
+@@ -110,7 +110,7 @@
+ 
+ function gen_bl31_node()
+ {
+-	${srctree}/arch/arm/mach-rockchip/decode_bl31.py
++	${srctree}/arch/arm/mach-rockchip/decode_bl31.py || exit 1
+ 
+ 	NUM=1
+ 	for ATF in `ls -1 -S bl31_0x*.bin`
