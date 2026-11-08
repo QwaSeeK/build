@@ -1,4 +1,12 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/* Requires an RK3568 LVDS driver. Panel timings must match the connected panel. */
 /dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/rk3568-cru.h>
+#include <dt-bindings/power/rk3568-power.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/soc/rockchip,vop2.h>
 /plugin/;
 / {
 	fragment@0 {
@@ -6,7 +14,7 @@
 		__overlay__ {
 			backlight: backlight {
 				compatible = "gpio-backlight";
-				gpios = <&gpio0 19 0>;
+				gpios = <&gpio0 RK_PC3 GPIO_ACTIVE_HIGH>;
 				default-on;
 			};
 			vcc3v3_lcd0_n: vcc3v3-lcd0-n {
@@ -15,7 +23,8 @@
 				regulator-min-microvolt = <3300000>;
 				regulator-max-microvolt = <3300000>;
 				enable-active-high;
-				gpio = <&gpio0 23 0>;
+				gpio = <&gpio0 RK_PC7 GPIO_ACTIVE_HIGH>;
+				vin-supply = <&vcc_3v3>;
 				regulator-boot-on;
 			};
 			panel_lvds0: panel-lvds0 {
@@ -56,8 +65,8 @@
 				rockchip,output = "lvds";
 				phys = <&dsi_dphy0>;
 				phy-names = "dphy";
-				power-domains = <&power 9>;
-				clocks = <&cru 232>;
+				power-domains = <&power RK3568_PD_VO>;
+				clocks = <&cru PCLK_DSITX_0>;
 				clock-names = "pclk_lvds";
 				status = "okay";
 				ports {
@@ -93,8 +102,8 @@
 		__overlay__ {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			vp1_out_lvds: endpoint@4 {
-				reg = <4>;
+			vp1_out_lvds: endpoint@ROCKCHIP_VOP2_EP_LVDS0 {
+				reg = <ROCKCHIP_VOP2_EP_LVDS0>;
 				remote-endpoint = <&lvds_in_vop>;
 			};
 		};
