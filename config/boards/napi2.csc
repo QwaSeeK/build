@@ -16,13 +16,19 @@ KERNEL_TEST_TARGET="current"
 
 BOOT_SCENARIO="binman"
 IMAGE_PARTITION_TABLE="gpt"
+INCLUDE_HOME_DIR="yes"
 BOOT_LOGO="no"
 
 DEFAULT_CONSOLE="serial"
 
 ROOTPWD="napilinux"
-NAPI_EXTRAARGS="cma=256M console=tty1"
+NAPI_EXTRAARGS="cma=256M"
 CONSOLE_AUTOLOGIN="no"
 
 PACKAGE_LIST_BOARD="can-utils i2c-tools mbpoll memtester minicom python3-pymodbus python3-smbus2"
 
+function post_family_tweaks__napi2_desktop() {
+	[[ "${BUILD_DESKTOP}" == yes && "${DESKTOP_ENVIRONMENT}" == xfce ]] || return 0
+	chroot_sdcard "systemctl --no-reload enable lightdm.service"
+	chroot_sdcard "systemctl --no-reload set-default graphical.target"
+}
