@@ -518,10 +518,6 @@
 	status = "okay";
 };
 
-&usb2phy1_host {
-	status = "okay";
-};
-
 &usb2phy1_otg {
 	phy-supply = <&vcc5v0_host_1>;
 	status = "okay";
@@ -540,14 +536,6 @@
 };
 
 &usb_host0_ohci {
-	status = "okay";
-};
-
-&usb_host1_ehci {
-	status = "okay";
-};
-
-&usb_host1_ohci {
 	status = "okay";
 };
 
@@ -606,40 +594,12 @@
 	status = "okay";
 };
 
-&can2 {
-	status = "okay";
-};
-
-&i2c4 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&i2c4m1_xfer>;
-};
-
 &uart7 {
 	pinctrl-0 = <&uart7m1_xfer>;
 	pinctrl-names = "default";
 	rts-gpios = <&gpio3 RK_PB5 GPIO_ACTIVE_HIGH>;
 	rs485-rts-active-high;
 	linux,rs485-enabled-at-boot-time;
-	status = "okay";
-};
-
-&uart3 {
-	pinctrl-0 = <&uart3m0_xfer>;
-	pinctrl-names = "default";
-	status = "okay";
-};
-
-&uart4 {
-	pinctrl-0 = <&uart4m1_xfer>;
-	pinctrl-names = "default";
-	status = "okay";
-};
-
-&uart5 {
-	pinctrl-0 = <&uart5m1_xfer>;
-	pinctrl-names = "default";
 	status = "okay";
 };
 
