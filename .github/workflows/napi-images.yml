@@ -25,6 +25,10 @@ on:
         description: "NAPI2 Xfce desktop"
         type: boolean
         default: false
+      napi2_kde:
+        description: "NAPI2 KDE Plasma desktop"
+        type: boolean
+        default: false
       napi_m:
         description: "NAPI-M (RK3562, vendor 6.1)"
         type: boolean
@@ -77,6 +81,7 @@ jobs:
           SEL_NAPI_SMARC: ${{ inputs.napi_smarc }}
           SEL_NAPI2: ${{ inputs.napi2 }}
           SEL_NAPI2_XFCE: ${{ inputs.napi2_xfce }}
+          SEL_NAPI2_KDE: ${{ inputs.napi2_kde }}
           SEL_NAPI_M: ${{ inputs.napi_m }}
           CLI_VARIANT: ${{ inputs.variant || 'standard' }}
         run: |
@@ -102,6 +107,10 @@ jobs:
           if [[ "${SEL_NAPI2_XFCE}" == "true" ]]; then
             boards+=("napi2-xfce")
             builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"xfce\"}")
+          fi
+          if [[ "${SEL_NAPI2_KDE}" == "true" ]]; then
+            boards+=("napi2-kde")
+            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"kde-plasma\"}")
           fi
           if (( ${#builds[@]} == 0 )); then
             echo "::error::No image selected"
@@ -133,6 +142,7 @@ jobs:
           body: |
             Kernel `${{ env.BRANCH }}` (NAPI-M: `vendor`), release `${{ inputs.release || 'resolute' }}`, variant `${{ inputs.variant || 'standard' }}`.
             NAPI2 Xfce desktop: ${{ inputs.napi2_xfce && 'included' || 'not selected' }}.
+            NAPI2 KDE Plasma desktop: ${{ inputs.napi2_kde && 'included' || 'not selected' }}.
             Commit ${{ github.sha }}, build ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
             ${{ github.ref_type == 'tag' && 'Stays a pre-release until every selected board has built.' || 'Manual build, stays a pre-release.' }}
@@ -170,10 +180,12 @@ jobs:
           desktop=no
           [[ "${VARIANT}" == "minimal" ]] && minimal=yes
           args=()
-          if [[ "${VARIANT}" == "xfce" ]]; then
-            desktop=yes
-            args+=("DESKTOP_ENVIRONMENT=xfce" "DESKTOP_TIER=mid")
-          fi
+          case "${VARIANT}" in
+            xfce|kde-plasma)
+              desktop=yes
+              args+=("DESKTOP_ENVIRONMENT=${VARIANT}" "DESKTOP_TIER=mid")
+              ;;
+          esac
           [[ -n "${IMAGE_VERSION}" ]] && args+=("IMAGE_VERSION=${IMAGE_VERSION}")
 
           ./compile.sh build \
