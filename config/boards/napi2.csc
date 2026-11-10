@@ -28,7 +28,13 @@ CONSOLE_AUTOLOGIN="no"
 PACKAGE_LIST_BOARD="can-utils i2c-tools mbpoll memtester minicom python3-pymodbus python3-smbus2"
 
 function post_family_tweaks__napi2_desktop() {
-	[[ "${BUILD_DESKTOP}" == yes && "${DESKTOP_ENVIRONMENT}" == xfce ]] || return 0
-	chroot_sdcard "systemctl --no-reload enable lightdm.service"
+	[[ "${BUILD_DESKTOP}" == yes ]] || return 0
+	declare desktop_dm
+	case "${DESKTOP_ENVIRONMENT}" in
+		xfce) desktop_dm=lightdm ;;
+		kde-plasma) desktop_dm=sddm ;;
+		*) return 0 ;;
+	esac
+	chroot_sdcard "systemctl --no-reload enable ${desktop_dm}.service"
 	chroot_sdcard "systemctl --no-reload set-default graphical.target"
 }
