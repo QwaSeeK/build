@@ -21,8 +21,8 @@ on:
         description: "NAPI2 CLI (RK3568)"
         type: boolean
         default: false
-      napi2_xfce:
-        description: "NAPI2 Xfce desktop"
+      napi2_mate:
+        description: "NAPI2 MATE desktop"
         type: boolean
         default: false
       napi2_gnome:
@@ -80,7 +80,7 @@ jobs:
           SEL_NAPI_SWITCH: ${{ inputs.napi_switch }}
           SEL_NAPI_SMARC: ${{ inputs.napi_smarc }}
           SEL_NAPI2: ${{ inputs.napi2 }}
-          SEL_NAPI2_XFCE: ${{ inputs.napi2_xfce }}
+          SEL_NAPI2_MATE: ${{ inputs.napi2_mate }}
           SEL_NAPI2_GNOME: ${{ inputs.napi2_gnome }}
           SEL_NAPI_M: ${{ inputs.napi_m }}
           CLI_VARIANT: ${{ inputs.variant || 'standard' }}
@@ -104,9 +104,9 @@ jobs:
               builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"variant\":\"${CLI_VARIANT}\"}")
             fi
           done
-          if [[ "${SEL_NAPI2_XFCE}" == "true" ]]; then
-            boards+=("napi2-xfce")
-            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"xfce\"}")
+          if [[ "${SEL_NAPI2_MATE}" == "true" ]]; then
+            boards+=("napi2-mate")
+            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"mate\"}")
           fi
           if [[ "${SEL_NAPI2_GNOME}" == "true" ]]; then
             boards+=("napi2-gnome-classic")
@@ -141,7 +141,7 @@ jobs:
           name: "${{ steps.matrix.outputs.tag }}"
           body: |
             Kernel `${{ env.BRANCH }}` (NAPI-M: `vendor`), release `${{ inputs.release || 'resolute' }}`, variant `${{ inputs.variant || 'standard' }}`.
-            NAPI2 Xfce desktop: ${{ inputs.napi2_xfce && 'included' || 'not selected' }}.
+            NAPI2 MATE desktop: ${{ inputs.napi2_mate && 'included' || 'not selected' }}.
             NAPI2 GNOME Classic desktop: ${{ inputs.napi2_gnome && 'included' || 'not selected' }}.
             Commit ${{ github.sha }}, build ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
@@ -181,7 +181,7 @@ jobs:
           [[ "${VARIANT}" == "minimal" ]] && minimal=yes
           args=()
           case "${VARIANT}" in
-            xfce|gnome)
+            mate|gnome)
               desktop=yes
               args+=("DESKTOP_ENVIRONMENT=${VARIANT}" "DESKTOP_TIER=mid")
               ;;

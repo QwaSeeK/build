@@ -9,7 +9,7 @@ setenv overlay_error "false"
 setenv rootdev ""
 setenv consoleargs
 setenv partuuid
-setenv verbosity "1"
+setenv verbosity "4"
 setenv console "both"
 setenv bootlogo "false"
 setenv rootfstype "ext4"
