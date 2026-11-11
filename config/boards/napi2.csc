@@ -17,12 +17,12 @@ KERNEL_TEST_TARGET="current"
 BOOT_SCENARIO="binman"
 IMAGE_PARTITION_TABLE="gpt"
 INCLUDE_HOME_DIR="yes"
-BOOT_LOGO="no"
+BOOT_LOGO="yes"
 
-DEFAULT_CONSOLE="serial"
+DEFAULT_CONSOLE="both"
 
 ROOTPWD="napilinux"
-NAPI_EXTRAARGS="cma=256M"
+NAPI_EXTRAARGS="cma=256M systemd.show_status=1"
 CONSOLE_AUTOLOGIN="no"
 
 PACKAGE_LIST_BOARD="can-utils i2c-tools mbpoll memtester minicom python3-pymodbus python3-smbus2"
@@ -31,8 +31,14 @@ function post_family_tweaks__napi2_desktop() {
 	[[ "${BUILD_DESKTOP}" == yes ]] || return 0
 	declare desktop_dm
 	case "${DESKTOP_ENVIRONMENT}" in
-		xfce) desktop_dm=lightdm ;;
-		kde-plasma) desktop_dm=sddm ;;
+		mate)
+			desktop_dm=lightdm
+			install -d -m 0755 "${SDCARD}/etc/lightdm/lightdm.conf.d"
+			cat > "${SDCARD}/etc/lightdm/lightdm.conf.d/50-napi-mate.conf" <<- EOF
+				[Seat:*]
+				user-session=mate
+			EOF
+			;;
 		gnome)
 			desktop_dm=gdm3
 			chroot_sdcard_apt_get_install gnome-classic
