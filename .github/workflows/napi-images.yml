@@ -25,8 +25,8 @@ on:
         description: "NAPI2 Xfce desktop"
         type: boolean
         default: false
-      napi2_kde:
-        description: "NAPI2 KDE Plasma desktop"
+      napi2_gnome:
+        description: "NAPI2 GNOME Classic desktop"
         type: boolean
         default: false
       napi_m:
@@ -81,7 +81,7 @@ jobs:
           SEL_NAPI_SMARC: ${{ inputs.napi_smarc }}
           SEL_NAPI2: ${{ inputs.napi2 }}
           SEL_NAPI2_XFCE: ${{ inputs.napi2_xfce }}
-          SEL_NAPI2_KDE: ${{ inputs.napi2_kde }}
+          SEL_NAPI2_GNOME: ${{ inputs.napi2_gnome }}
           SEL_NAPI_M: ${{ inputs.napi_m }}
           CLI_VARIANT: ${{ inputs.variant || 'standard' }}
         run: |
@@ -108,9 +108,9 @@ jobs:
             boards+=("napi2-xfce")
             builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"xfce\"}")
           fi
-          if [[ "${SEL_NAPI2_KDE}" == "true" ]]; then
-            boards+=("napi2-kde")
-            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"kde-plasma\"}")
+          if [[ "${SEL_NAPI2_GNOME}" == "true" ]]; then
+            boards+=("napi2-gnome-classic")
+            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"gnome\"}")
           fi
           if (( ${#builds[@]} == 0 )); then
             echo "::error::No image selected"
@@ -142,7 +142,7 @@ jobs:
           body: |
             Kernel `${{ env.BRANCH }}` (NAPI-M: `vendor`), release `${{ inputs.release || 'resolute' }}`, variant `${{ inputs.variant || 'standard' }}`.
             NAPI2 Xfce desktop: ${{ inputs.napi2_xfce && 'included' || 'not selected' }}.
-            NAPI2 KDE Plasma desktop: ${{ inputs.napi2_kde && 'included' || 'not selected' }}.
+            NAPI2 GNOME Classic desktop: ${{ inputs.napi2_gnome && 'included' || 'not selected' }}.
             Commit ${{ github.sha }}, build ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
             ${{ github.ref_type == 'tag' && 'Stays a pre-release until every selected board has built.' || 'Manual build, stays a pre-release.' }}
@@ -181,7 +181,7 @@ jobs:
           [[ "${VARIANT}" == "minimal" ]] && minimal=yes
           args=()
           case "${VARIANT}" in
-            xfce|kde-plasma)
+            xfce|gnome)
               desktop=yes
               args+=("DESKTOP_ENVIRONMENT=${VARIANT}" "DESKTOP_TIER=mid")
               ;;
