@@ -41,15 +41,6 @@ function post_family_tweaks__napi2_desktop() {
 			;;
 		gnome)
 			desktop_dm=gdm3
-			chroot_sdcard_apt_get_install gnome-classic
-			install -d -m 0700 "${SDCARD}/var/lib/AccountsService/users"
-			cat > "${SDCARD}/var/lib/AccountsService/users/napi" <<- EOF
-				[User]
-				Session=gnome-classic
-				SessionType=wayland
-				SystemAccount=false
-			EOF
-			chmod 0600 "${SDCARD}/var/lib/AccountsService/users/napi"
 			;;
 		*) return 0 ;;
 	esac
