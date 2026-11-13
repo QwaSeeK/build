@@ -48,6 +48,11 @@ on:
         type: choice
         options: [minimal, standard]
         default: minimal
+      revision:
+        description: "Image and package version (empty: use VERSION)"
+        type: string
+        required: false
+        default: ""
   push:
     tags:
       - "v*"
@@ -71,7 +76,7 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       tag: ${{ steps.matrix.outputs.tag }}
-      image_version: ${{ steps.matrix.outputs.image_version }}
+      revision: ${{ steps.matrix.outputs.revision }}
     steps:
       - name: Build matrix from the selected boards
         id: matrix
@@ -83,7 +88,9 @@ jobs:
           SEL_NAPI2_MATE: ${{ inputs.napi2_mate }}
           SEL_NAPI2_GNOME: ${{ inputs.napi2_gnome }}
           SEL_NAPI_M: ${{ inputs.napi_m }}
-          CLI_VARIANT: ${{ inputs.variant || 'standard' }}
+          CLI_VARIANT: ${{ inputs.variant || 'minimal' }}
+          CLI_RELEASE: ${{ inputs.release || 'trixie' }}
+          INPUT_REVISION: ${{ inputs.revision }}
         run: |
           set -euo pipefail
           # Map checkbox inputs to board configurations.
@@ -101,37 +108,51 @@ jobs:
               branch="${BRANCH}"
               [[ "${board}" == "napi-m" ]] && branch=vendor
               boards+=("${board}")
-              builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"variant\":\"${CLI_VARIANT}\"}")
+              if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+                builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"release\":\"trixie\",\"variant\":\"minimal\"}")
+                builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"release\":\"resolute\",\"variant\":\"standard\"}")
+              else
+                builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"release\":\"${CLI_RELEASE}\",\"variant\":\"${CLI_VARIANT}\"}")
+              fi
             fi
           done
-          if [[ "${SEL_NAPI2_MATE}" == "true" ]]; then
+          desktop_release="${CLI_RELEASE}"
+          [[ "${GITHUB_EVENT_NAME}" == "push" ]] && desktop_release=resolute
+          if [[ "${GITHUB_EVENT_NAME}" == "push" || "${SEL_NAPI2_MATE}" == "true" ]]; then
             boards+=("napi2-mate")
-            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"mate\"}")
+            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"release\":\"${desktop_release}\",\"variant\":\"mate\"}")
           fi
-          if [[ "${SEL_NAPI2_GNOME}" == "true" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "push" || "${SEL_NAPI2_GNOME}" == "true" ]]; then
             boards+=("napi2-gnome-classic")
-            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"variant\":\"gnome\"}")
+            builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"release\":\"${desktop_release}\",\"variant\":\"gnome\"}")
           fi
           if (( ${#builds[@]} == 0 )); then
             echo "::error::No image selected"
             exit 1
           fi
 
-          image_version=""
+          revision="${INPUT_REVISION}"
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             tag="${GITHUB_REF_NAME}"
-            image_version="${tag#v}"
+            revision="${tag#v}"
           else
             tag="napi-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          fi
+          if [[ -n "${revision}" && ! "${revision}" =~ ^[0-9][0-9A-Za-z.+:~-]*$ ]]; then
+            echo "::error::Version must start with a digit and contain only Debian version characters"
+            exit 1
           fi
 
           json=$(printf '%s,' "${builds[@]}")
           {
             echo "matrix={\"include\":[${json%,}]}"
             echo "tag=${tag}"
-            echo "image_version=${image_version}"
+            echo "revision=${revision}"
+            echo "images<<NAPI_IMAGES"
+            printf '%s\n' "${builds[@]}" | jq -r '"| \(.board) | \(.release) | \(.variant) |"'
+            echo "NAPI_IMAGES"
           } >> "${GITHUB_OUTPUT}"
-          echo "Boards: ${boards[*]}; tag: ${tag}; image version: ${image_version:-<revision from VERSION>}"
+          echo "Boards: ${boards[*]}; tag: ${tag}; revision: ${revision:-<revision from VERSION>}"
 
       - name: Create pre-release
         uses: ncipollo/release-action@v1.21.0
@@ -140,9 +161,12 @@ jobs:
           commit: ${{ github.sha }}
           name: "${{ steps.matrix.outputs.tag }}"
           body: |
-            Kernel `${{ env.BRANCH }}` (NAPI-M: `vendor`), release `${{ inputs.release || 'resolute' }}`, variant `${{ inputs.variant || 'standard' }}`.
-            NAPI2 MATE desktop: ${{ inputs.napi2_mate && 'included' || 'not selected' }}.
-            NAPI2 GNOME Classic desktop: ${{ inputs.napi2_gnome && 'included' || 'not selected' }}.
+            Kernel `${{ env.BRANCH }}` (NAPI-M: `vendor`).
+
+            | Board | Release | Variant |
+            |---|---|---|
+            ${{ steps.matrix.outputs.images }}
+
             Commit ${{ github.sha }}, build ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
             ${{ github.ref_type == 'tag' && 'Stays a pre-release until every selected board has built.' || 'Manual build, stays a pre-release.' }}
@@ -151,7 +175,7 @@ jobs:
           allowUpdates: true
 
   build:
-    name: "${{ matrix.board }} (${{ inputs.release || 'resolute' }}, ${{ matrix.branch }}, ${{ matrix.variant }})"
+    name: "${{ matrix.board }} (${{ matrix.release }}, ${{ matrix.branch }}, ${{ matrix.variant }})"
     needs: prepare
     runs-on: self-hosted
     timeout-minutes: 500
@@ -171,9 +195,9 @@ jobs:
         env:
           BOARD: ${{ matrix.board }}
           BRANCH: ${{ matrix.branch }}
-          RELEASE: ${{ inputs.release || 'resolute' }}
+          RELEASE: ${{ matrix.release }}
           VARIANT: ${{ matrix.variant }}
-          IMAGE_VERSION: ${{ needs.prepare.outputs.image_version }}
+          REVISION: ${{ needs.prepare.outputs.revision }}
         run: |
           set -euo pipefail
           minimal=no
@@ -186,7 +210,7 @@ jobs:
               args+=("DESKTOP_ENVIRONMENT=${VARIANT}" "DESKTOP_TIER=mid")
               ;;
           esac
-          [[ -n "${IMAGE_VERSION}" ]] && args+=("IMAGE_VERSION=${IMAGE_VERSION}")
+          [[ -n "${REVISION}" ]] && args+=("REVISION=${REVISION}")
 
           ./compile.sh build \
             BOARD="${BOARD}" BRANCH="${BRANCH}" RELEASE="${RELEASE}" \
@@ -197,6 +221,7 @@ jobs:
       - name: Summary
         env:
           BOARD: ${{ matrix.board }}
+          RELEASE: ${{ matrix.release }}
           VARIANT: ${{ matrix.variant }}
         run: |
           shopt -s nullglob
@@ -206,7 +231,7 @@ jobs:
             exit 1
           fi
           {
-            echo "### ${BOARD} (${VARIANT})"
+            echo "### ${BOARD} (${RELEASE}, ${VARIANT})"
             echo "| Image | Size |"
             echo "|---|---|"
             for image in "${images[@]}"; do
