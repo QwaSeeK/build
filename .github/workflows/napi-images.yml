@@ -9,14 +9,6 @@ on:
         description: "NAPI-C (RK3308)"
         type: boolean
         default: false
-      napi_switch:
-        description: "NAPI-Switch (RK3308)"
-        type: boolean
-        default: false
-      napi_smarc:
-        description: "NAPI-SMARC (RK3568)"
-        type: boolean
-        default: false
       napi2:
         description: "NAPI2 CLI (RK3568)"
         type: boolean
@@ -41,7 +33,7 @@ on:
       release:
         description: "Userspace release"
         type: choice
-        options: [trixie, resolute]
+        options: [trixie, noble]
         default: trixie
       variant:
         description: "CLI image variant"
@@ -82,8 +74,6 @@ jobs:
         id: matrix
         env:
           SEL_NAPI_C: ${{ inputs.napi_c }}
-          SEL_NAPI_SWITCH: ${{ inputs.napi_switch }}
-          SEL_NAPI_SMARC: ${{ inputs.napi_smarc }}
           SEL_NAPI2: ${{ inputs.napi2 }}
           SEL_NAPI2_MATE: ${{ inputs.napi2_mate }}
           SEL_NAPI2_GNOME: ${{ inputs.napi2_gnome }}
@@ -96,28 +86,26 @@ jobs:
           # Map checkbox inputs to board configurations.
           declare -A selected=(
             [napi-c]="${SEL_NAPI_C}"
-            [napi-switch]="${SEL_NAPI_SWITCH}"
-            [napi-smarc]="${SEL_NAPI_SMARC}"
             [napi2]="${SEL_NAPI2}"
             [napi-m]="${SEL_NAPI_M}"
           )
           boards=()
           builds=()
-          for board in napi-c napi-switch napi-smarc napi2 napi-m; do
+          for board in napi-c napi2 napi-m; do
             if [[ "${GITHUB_EVENT_NAME}" == "push" || "${selected[${board}]}" == "true" ]]; then
               branch="${BRANCH}"
               [[ "${board}" == "napi-m" ]] && branch=vendor
               boards+=("${board}")
               if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
                 builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"release\":\"trixie\",\"variant\":\"minimal\"}")
-                builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"release\":\"resolute\",\"variant\":\"standard\"}")
+                builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"release\":\"noble\",\"variant\":\"standard\"}")
               else
                 builds+=("{\"board\":\"${board}\",\"branch\":\"${branch}\",\"release\":\"${CLI_RELEASE}\",\"variant\":\"${CLI_VARIANT}\"}")
               fi
             fi
           done
           desktop_release="${CLI_RELEASE}"
-          [[ "${GITHUB_EVENT_NAME}" == "push" ]] && desktop_release=resolute
+          [[ "${GITHUB_EVENT_NAME}" == "push" ]] && desktop_release=noble
           if [[ "${GITHUB_EVENT_NAME}" == "push" || "${SEL_NAPI2_MATE}" == "true" ]]; then
             boards+=("napi2-mate")
             builds+=("{\"board\":\"napi2\",\"branch\":\"${BRANCH}\",\"release\":\"${desktop_release}\",\"variant\":\"mate\"}")
