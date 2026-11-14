@@ -39,7 +39,7 @@ on:
         description: "CLI image variant"
         type: choice
         options: [minimal, standard]
-        default: minimal
+        default: standard
       revision:
         description: "Image and package version (empty: use VERSION)"
         type: string
@@ -78,7 +78,7 @@ jobs:
           SEL_NAPI2_MATE: ${{ inputs.napi2_mate }}
           SEL_NAPI2_GNOME: ${{ inputs.napi2_gnome }}
           SEL_NAPI_M: ${{ inputs.napi_m }}
-          CLI_VARIANT: ${{ inputs.variant || 'minimal' }}
+          CLI_VARIANT: ${{ inputs.variant || 'standard' }}
           CLI_RELEASE: ${{ inputs.release || 'trixie' }}
           INPUT_REVISION: ${{ inputs.revision }}
         run: |
@@ -92,6 +92,9 @@ jobs:
           boards=()
           builds=()
           for board in napi-c napi2 napi-m; do
+            if [[ "${GITHUB_EVENT_NAME}" == "push" && "${board}" == "napi-m" ]]; then
+              continue
+            fi
             if [[ "${GITHUB_EVENT_NAME}" == "push" || "${selected[${board}]}" == "true" ]]; then
               branch="${BRANCH}"
               [[ "${board}" == "napi-m" ]] && branch=vendor
@@ -149,7 +152,7 @@ jobs:
           commit: ${{ github.sha }}
           name: "${{ steps.matrix.outputs.tag }}"
           body: |
-            Kernel `${{ env.BRANCH }}` (NAPI-M: `vendor`).
+            Kernel `${{ env.BRANCH }}`${{ github.event_name == 'workflow_dispatch' && inputs.napi_m && ' (NAPI-M: vendor)' || '' }}.
 
             | Board | Release | Variant |
             |---|---|---|
