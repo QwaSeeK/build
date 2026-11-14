@@ -542,7 +542,8 @@
 };
 
 &usb_host0_xhci {
-	dr_mode = "peripheral";
+	dr_mode = "host";
+	maximum-speed = "high-speed";
 	status = "okay";
 };
 
