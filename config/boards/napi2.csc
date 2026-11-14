@@ -44,10 +44,6 @@ function post_family_tweaks__napi2_desktop() {
 			;;
 		*) return 0 ;;
 	esac
-	if [[ "${desktop_dm}" == gdm3 ]]; then
-		chroot_sdcard "ln -sf /lib/systemd/system/gdm3.service /etc/systemd/system/display-manager.service"
-	else
-		chroot_sdcard "systemctl --no-reload enable ${desktop_dm}.service"
-	fi
+	chroot_sdcard "ln -sf /lib/systemd/system/${desktop_dm}.service /etc/systemd/system/display-manager.service"
 	chroot_sdcard "systemctl --no-reload set-default graphical.target"
 }
