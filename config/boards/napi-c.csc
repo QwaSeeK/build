@@ -31,7 +31,7 @@ ROOTPWD="napilinux"
 NAPI_EXTRAARGS="cma=16M"
 CONSOLE_AUTOLOGIN="no"
 
-PACKAGE_LIST_BOARD="vim net-tools can-utils mbpoll minicom tcpdump screen memtester xxd tree \
+PACKAGE_LIST_BOARD="avahi-daemon vim net-tools can-utils mbpoll minicom tcpdump screen memtester xxd tree \
 	util-linux-extra mosquitto mosquitto-clients i2c-tools python3-pymodbus python3-pip \
 	python3-smbus2 git tmux make cmake gcc build-essential flex bison libssl-dev pkg-config"
 
