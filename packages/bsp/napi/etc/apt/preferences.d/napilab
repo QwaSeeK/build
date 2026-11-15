@@ -1,0 +1,11 @@
+# NapiLab builds its own libgpiod/gpiod (and mbusd). Prefer them over the
+# distribution's, replacing the distro packages instead of requiring the old
+# `apt-get purge -y libgpiod2 libgpiod-dev gpiod` that the userpatches
+# customize-image.sh used to run.
+#
+# Pin-Priority above 1000 is required so apt is allowed to *downgrade* an
+# already-installed distro package to the NapiLab version.
+
+Package: gpiod libgpiod* mbusd
+Pin: origin "repo.napilab.ru"
+Pin-Priority: 1001
