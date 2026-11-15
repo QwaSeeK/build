@@ -8,7 +8,7 @@ and mainline U-Boot use 128-entry GPTs, so bump Rock 4D SPI to match.
 
 --- a/configs/rock-4d-spi-rk3576_defconfig
 +++ b/configs/rock-4d-spi-rk3576_defconfig
-@@ -81,7 +81,7 @@ CONFIG_CMD_MTD_BLK=y
+@@ -81,6 +81,6 @@ CONFIG_CMD_MTD_BLK=y
  # CONFIG_SPL_DOS_PARTITION is not set
  # CONFIG_ISO_PARTITION is not set
 -CONFIG_EFI_PARTITION_ENTRIES_NUMBERS=64
