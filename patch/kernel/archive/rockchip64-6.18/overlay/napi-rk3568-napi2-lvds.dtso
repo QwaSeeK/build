@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/* Requires an RK3568 LVDS driver. Panel timings must match the connected panel. */
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/rk3568-cru.h>
+#include <dt-bindings/power/rk3568-power.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/soc/rockchip,vop2.h>
+/plugin/;
+/ {
+	fragment@0 {
+		target-path = "/";
+		__overlay__ {
+			backlight: backlight {
+				compatible = "gpio-backlight";
+				gpios = <&gpio0 RK_PC3 GPIO_ACTIVE_HIGH>;
+				default-on;
+			};
+			vcc3v3_lcd0_n: vcc3v3-lcd0-n {
+				compatible = "regulator-fixed";
+				regulator-name = "vcc3v3_lcd0_n";
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				enable-active-high;
+				gpio = <&gpio0 RK_PC7 GPIO_ACTIVE_HIGH>;
+				vin-supply = <&vcc_3v3>;
+				regulator-boot-on;
+			};
+			panel_lvds0: panel-lvds0 {
+				compatible = "panel-lvds";
+				backlight = <&backlight>;
+				power-supply = <&vcc3v3_lcd0_n>;
+				enable-delay-ms = <20>;
+				prepare-delay-ms = <20>;
+				unprepare-delay-ms = <20>;
+				disable-delay-ms = <20>;
+				data-mapping = "vesa-24";
+				width-mm = <261>;
+				height-mm = <163>;
+				panel-timing {
+					clock-frequency = <71000000>;
+					hactive = <1280>;
+					hfront-porch = <48>;
+					hsync-len = <32>;
+					hback-porch = <80>;
+					vactive = <800>;
+					vfront-porch = <3>;
+					vsync-len = <6>;
+					vback-porch = <14>;
+					hsync-active = <0>;
+					vsync-active = <0>;
+					de-active = <0>;
+					pixelclk-active = <0>;
+				};
+				port {
+					panel_in_lvds: endpoint {
+						remote-endpoint = <&lvds_out_panel>;
+					};
+				};
+			};
+			lvds: lvds {
+				compatible = "rockchip,rk3568-lvds";
+				rockchip,grf = <&grf>;
+				rockchip,output = "lvds";
+				phys = <&dsi_dphy0>;
+				phy-names = "dphy";
+				power-domains = <&power RK3568_PD_VO>;
+				clocks = <&cru PCLK_DSITX_0>;
+				clock-names = "pclk_lvds";
+				status = "okay";
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+					port@0 {
+						reg = <0>;
+						#address-cells = <1>;
+						#size-cells = <0>;
+						lvds_in_vop: endpoint@1 {
+							reg = <1>;
+							remote-endpoint = <&vp1_out_lvds>;
+						};
+					};
+					port@1 {
+						reg = <1>;
+						lvds_out_panel: endpoint {
+							remote-endpoint = <&panel_in_lvds>;
+						};
+					};
+				};
+			};
+		};
+	};
+	fragment@1 {
+		target = <&dsi_dphy0>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+	fragment@2 {
+		target = <&vp1>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			vp1_out_lvds: endpoint@ROCKCHIP_VOP2_EP_LVDS0 {
+				reg = <ROCKCHIP_VOP2_EP_LVDS0>;
+				remote-endpoint = <&lvds_in_vop>;
+			};
+		};
+	};
+};

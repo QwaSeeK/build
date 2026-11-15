@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Switch the NAPI-Switch SFP cage (KSZ9567 port 7) from a copper
+ * 1000BASE-T module to an optical 1000BASE-X one.
+ *
+ * The cage has no i2c, no MOD_ABS and no LOS wired to the SoC, so no
+ * sff,sfp node can exist and phylink cannot learn the mode from the
+ * module itself - it has to be stated here.  The board defaults to
+ * "sgmii", which is what a copper SFP-to-RJ45 module speaks; an optical
+ * module is a transparent SerDes-to-light converter and needs plain
+ * 1000BASE-X with clause-37 in-band autonegotiation instead.
+ *
+ * Only 1G modules work: the KSZ9567 SerDes runs at 1.25 GBd.
+ *
+ * Keep "managed" as is.  Dropping it would send phylink down the
+ * MLO_AN_PHY path, where it would attach the phantom PHY that
+ * ksz9477_r_phy() fakes at MDIO address 6.
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "napilab,napi-switch", "rockchip,rk3308";
+
+	fragment@0 {
+		target = <&sfp_port>;
+		__overlay__ {
+			managed = "in-band-status";
+			phy-mode = "1000base-x";
+		};
+	};
+};
