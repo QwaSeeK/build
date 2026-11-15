@@ -19,7 +19,7 @@ DEFAULT_CONSOLE="serial"
 ROOTPWD="napilinux"
 CONSOLE_AUTOLOGIN="no"
 
-PACKAGE_LIST_BOARD="vim net-tools minicom tcpdump screen memtester xxd tree i2c-tools util-linux-extra"
+PACKAGE_LIST_BOARD="avahi-daemon vim net-tools minicom tcpdump screen memtester xxd tree i2c-tools util-linux-extra"
 
 function post_family_config__napi_m_vendor() {
 	declare -g BOOTSOURCE="https://github.com/QwaSeeK/u-boot.git"

@@ -25,7 +25,7 @@ ROOTPWD="napilinux"
 NAPI_EXTRAARGS="cma=256M systemd.show_status=1 plymouth.nolog"
 CONSOLE_AUTOLOGIN="no"
 
-PACKAGE_LIST_BOARD="vim can-utils i2c-tools mbpoll memtester minicom python3-pymodbus python3-smbus2 util-linux-extra"
+PACKAGE_LIST_BOARD="avahi-daemon vim can-utils i2c-tools mbpoll memtester minicom python3-pymodbus python3-smbus2 util-linux-extra"
 
 function post_family_tweaks__napi2_desktop() {
 	[[ "${BUILD_DESKTOP}" == yes ]] || return 0
